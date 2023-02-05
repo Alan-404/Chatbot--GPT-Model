@@ -15,11 +15,13 @@ with open('./clean/data.pkl', 'rb') as handle:
 # %%
 data.shape
 #%%
-data = torch.tensor(data, dtype=torch.int64)
+data = torch.tensor(data)
 # %%
 model.fit(sequences=data, batch_size=15, epochs=10)
 # %%
-model.save_model("./saved_models/05_02_12h25_gpt")
+model.save_model("./saved_models/05_02_14h25_gpt")
 # %%
 model.info()
+# %%
+data
 # %%

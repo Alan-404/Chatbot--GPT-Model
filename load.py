@@ -5,7 +5,15 @@ import pandas as pd
 import re
 from constants.token import END_TOKEN, DELIM_TOKEN
 # %%
-df = pd.read_csv("./datasets/S08_question_answer_pairs.txt", sep='\t')
+df1 = pd.read_csv("./datasets/S08_question_answer_pairs.txt", sep='\t')
+#%%
+df2 = pd.read_csv("./datasets/S09_question_answer_pairs.txt", sep='\t')
+# %%
+df = pd.concat([df1, df2])
+# %%
+df.head(10)
+# %%
+
 #%%
 df = df.drop_duplicates(subset='Question')
 df = df.dropna()

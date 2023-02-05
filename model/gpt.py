@@ -17,7 +17,7 @@ class GPTModel(nn.Module):
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
         self.decoder = Decoder(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
-
+        self.to(device)
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
         x = self.embedding_layer(x)
         x = self.decoder(x, mask, training)
@@ -79,8 +79,6 @@ class GPT:
 
         optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
         dataloader = self.build_dataset(sequences, batch_size)
-
-        self.model.to(device)
 
         for epoch in range(epochs):
             running_loss = 0.0
