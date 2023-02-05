@@ -1,0 +1,7 @@
+/clean
+/datasets
+/saved_models
+/tokenizer
+/*/__pycache__
+/*/*/__pycache__
+/notebooks
