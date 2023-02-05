@@ -71,7 +71,7 @@ class GPT:
         print("Model's State Dict: ")
         for param_tensor in self.model.state_dict():
             print(param_tensor, "\t", self.model.state_dict()[param_tensor].size())
-        print("===========================================================================================")
+        print("===================================")
     
     def fit(self, sequences: torch.Tensor, batch_size: int = 1, epochs: int = 1, learning_rate: float = 0.0006):
         if self.checkpoint is not None:
@@ -106,10 +106,22 @@ class GPT:
                     print(f"Epoch: {epoch + 1} Batch: {index+1} Loss: {(running_loss/batch_size):.2f}")
                     running_loss = 0.0
 
-    def predict(self, inputs: torch.Tensor, max_length: int, end_token: int):
+        if self.checkpoint is not None:
+            self.save_model(self.checkpoint)
+
+    def predict(self, inputs: torch.Tensor, max_length: int = 10, end_token: int = 1):
         self.load_model(self.checkpoint)
+        inputs = inputs.to(device)
+        """ _, look_ahead_mask = generate_mask(inputs)
+        look_ahead_mask = look_ahead_mask.to(device)
+        inputs = inputs.to(device)
+        preds = self.model(inputs, look_ahead_mask, False)
+        print(preds.shape)
+        preds = preds[:, -1, :]
+        return preds """
         for i in range(max_length - inputs.size(1)):
             _, look_ahead_mask = generate_mask(inputs)
+            look_ahead_mask = look_ahead_mask.to(device)
 
             preds = self.model(inputs, look_ahead_mask, False)
 

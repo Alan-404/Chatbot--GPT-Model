@@ -55,7 +55,7 @@ class MultiHeadAttention(nn.Module):
         v_heads = self.split(vw)
 
         attention_output, _ = self.scaled_dot_product_attention(q_heads, k_heads, v_heads, mask)
-
+        attention_output
         attention_output = torch.permute(attention_output, (0, 2, 1, 3))
         attention_output = torch.reshape(attention_output, (batch_size, length, self.embedding_dim))
 
