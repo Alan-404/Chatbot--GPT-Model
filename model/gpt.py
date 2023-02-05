@@ -109,21 +109,17 @@ class GPT:
         if self.checkpoint is not None:
             self.save_model(self.checkpoint)
 
-    def predict(self, inputs: torch.Tensor, max_length: int = 10, end_token: int = 1):
+    def predict(self, sequence: torch.Tensor, max_length: int, end_token: int):
         self.load_model(self.checkpoint)
-        inputs = inputs.to(device)
-        """ _, look_ahead_mask = generate_mask(inputs)
-        look_ahead_mask = look_ahead_mask.to(device)
-        inputs = inputs.to(device)
-        preds = self.model(inputs, look_ahead_mask, False)
-        print(preds.shape)
-        preds = preds[:, -1, :]
-        return preds """
-        for i in range(max_length - inputs.size(1)):
-            _, look_ahead_mask = generate_mask(inputs)
+        sequence = sequence.to(device)
+
+        length = sequence.size(1)
+
+        for i in range(max_length):
+            _, look_ahead_mask = generate_mask(sequence)
             look_ahead_mask = look_ahead_mask.to(device)
 
-            preds = self.model(inputs, look_ahead_mask, False)
+            preds = self.model(sequence, look_ahead_mask, False)
 
             preds = preds[:, -1, :]
 
@@ -132,7 +128,7 @@ class GPT:
             if predicted_id == end_token:
                 break
 
-            inputs = torch.concat([inputs, predicted_id], dim=-1)
+            sequence = torch.concat([sequence, predicted_id], dim=-1)
 
-        return inputs
+        return sequence[:, length: ]
     
