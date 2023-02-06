@@ -1,3 +1,4 @@
+START_TOKEN = "__START__"
 END_TOKEN = "__END__"
 SEP_TOKEN = "__SEP__"
 DELIM_TOKEN = "__DELIM__"

@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 import re
-from constants.token import END_TOKEN, DELIM_TOKEN
+from constants.token import END_TOKEN, DELIM_TOKEN, START_TOKEN
 # %%
 df1 = pd.read_csv("./datasets/S08_question_answer_pairs.txt", sep='\t')
 #%%
@@ -18,7 +18,7 @@ df.head(10)
 df = df.drop_duplicates(subset='Question')
 df = df.dropna()
 # %%
-df['Content'] = df['ArticleTitle'] + " " + df['Question'] + " " + DELIM_TOKEN +" " + df['Answer'] + " " + END_TOKEN
+df['Content'] = START_TOKEN + " " + df['Question'] + " " + DELIM_TOKEN +" " + df['Answer'] + " " + END_TOKEN
 # %%
 df['Content']
 # %%

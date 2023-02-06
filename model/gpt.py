@@ -45,6 +45,11 @@ class GPT:
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         return dataloader
 
+    def accuracy_function(self, outputs: torch.Tensor, labels: torch.Tensor):
+        _, predicted = torch.max(outputs, dim=-1)
+        same = (predicted == labels).sum()
+        return same/labels.size(1)
+
     def loss_function(self, outputs: torch.Tensor, labels: torch.Tensor):
         length = labels.size(1) 
         criterion = nn.CrossEntropyLoss()
@@ -82,28 +87,33 @@ class GPT:
 
         for epoch in range(epochs):
             running_loss = 0.0
+            running_accuracy = 0.0
 
             for index, data in enumerate(dataloader, 0):
                 data = data[0]
+                labels = data[:, 1:]
+                data = data[:, :-1]
 
                 _, look_ahead_mask = generate_mask(data)
 
                 data = data.to(device)
+                labels = labels.to(device)
                 look_ahead_mask = look_ahead_mask.to(device)
 
                 optimizer.zero_grad()
 
                 outputs = self.model(data, look_ahead_mask, True)
 
-                loss = self.loss_function(outputs, data)
+                loss = self.loss_function(outputs, labels)
 
                 loss.backward()
                 optimizer.step()
 
                 running_loss += loss.item()
+                running_accuracy += self.accuracy_function(outputs, labels)
                 
-                if index%batch_size == 0:
-                    print(f"Epoch: {epoch + 1} Batch: {index+1} Loss: {(running_loss/batch_size):.2f}")
+                if index != 0 and index%batch_size == 0:
+                    print(f"Epoch: {epoch + 1} Batch: {index+1} Loss: {(running_loss/batch_size):.2f} Accuracy: {(running_accuracy/batch_size):.2f}%")
                     running_loss = 0.0
 
         if self.checkpoint is not None:
