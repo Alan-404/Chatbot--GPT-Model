@@ -25,8 +25,17 @@ df['Content']
 
 # %%
 X = np.array(df['Content'])
+y = np.array(df['ArticleTitle'])
 # %%
-X[0]
+X.shape
+# %%
+y.shape
+# %%
+y
+# %%
+df['ArticleTitle'].value_counts()
+# %%
+type(df['ArticleTitle'].value_counts())
 # %%
 from preprocessing.text import TextProcessor
 # %%

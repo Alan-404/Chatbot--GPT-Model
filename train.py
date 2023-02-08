@@ -2,26 +2,35 @@
 from model.gpt import GPT
 import torch
 import pickle
+import numpy as np
+# %%
+with open('./clean/inputs.pkl', 'rb') as handle:
+    X_train = pickle.load(handle)
+# %%
+with open('./clean/labels.pkl', 'rb') as handle:
+    y_train = pickle.load(handle)
 # %%
 with open('./tokenizer/tokenizer.pkl', 'rb') as handle:
     tokenizer = pickle.load(handle)
 # %%
-vocab_size = len(tokenizer.word_index)+1
+X_train.shape
 # %%
-model = GPT(vocab_size=vocab_size, checkpoint="./saved_models/06_02_8h30_gpt")
+y_train.shape
 # %%
-with open('./clean/data.pkl', 'rb') as handle:
-    data = pickle.load(handle)
+vocab_size = len(tokenizer.word_index) + 1
 # %%
-data.shape
+vocab_size
+# %%
+task_size = len(np.unique(y_train)) + 1
+# %%
+task_size
+# %%
+gpt = GPT(vocab_size=vocab_size, task_size=task_size)
+# %%
+X_train = torch.tensor(X_train)
+y_train = torch.tensor(y_train)
 #%%
-data = torch.tensor(data)
+gpt.fit(X_train, y_train, batch_size=7, epochs=5)
 # %%
-model.fit(sequences=data, batch_size=15, epochs=10)
-# %%
-model.save_model("./saved_models/06_02_8h30_gpt")
-# %%
-
-# %%
-
+gpt.save_model("./saved_models/model")
 # %%
