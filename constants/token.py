@@ -9,3 +9,4 @@ class Token():
     CODE_TOKEN = "__CODE__"
     OR_TOKEN = "__OR__"
     QUESTION_TOKEN = "__QUESTION__"
+    QA_TOKEN = "__QA__"

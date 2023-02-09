@@ -21,16 +21,16 @@ vocab_size = len(tokenizer.word_index) + 1
 # %%
 vocab_size
 # %%
-task_size = len(np.unique(y_train)) + 1
+# task_size = len(np.unique(y_train)) + 1
 # %%
-task_size
+# task_size
 # %%
-gpt = GPT(vocab_size=vocab_size, task_size=task_size)
+gpt = GPT(vocab_size=vocab_size, checkpoint='./saved_models/model1')
 # %%
 X_train = torch.tensor(X_train)
-y_train = torch.tensor(y_train)
+# y_train = torch.tensor(y_train)
 #%%
-gpt.fit(X_train, y_train, batch_size=7, epochs=5)
+gpt.fit(X_train, batch_size=10, epochs=10)
 # %%
-gpt.save_model("./saved_models/model")
+gpt.save_model("./saved_models/model1")
 # %%

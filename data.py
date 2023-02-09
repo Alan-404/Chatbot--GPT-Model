@@ -1,11 +1,14 @@
 #%%
 import pandas as pd
+from constants.token import Token
+import re
+token = Token()
+import pickle
+from preprocessing.text import TextProcessor
 # %%
 df = pd.read_json('./datasets/train.json')
 # %%
 df.head(10)
-# %%
-import json
 # %%
 df['annotations'][0][0]['qaPairs']
 #%%
@@ -13,10 +16,6 @@ type(df['annotations'][0][0]['qaPairs'])
 # %%
 X = []
 y = []
-# %%
-from constants.token import Token
-import re
-token = Token()
 # %%
 def change_token(sequence: str):
     sequence = re.sub("\u2026", f" {token.TRIPLE_DOT_TOKEN}", sequence)
@@ -36,17 +35,17 @@ def change_list(sequences: list):
 # %%
 for index, row in df.iterrows():
     answer = f" {token.OR_TOKEN} ".join(change_list(sequences=row['nq_answer']))
-    sequence = f"{token.START_TOKEN} " + change_token(row['question']) + f" {token.DELIM_TOKEN} " + answer + f" {token.END_TOKEN}"
+    sequence = f"{token.START_TOKEN} {token.QA_TOKEN} " + change_token(row['question'])  + answer + f" {token.END_TOKEN}"
     X.append(sequence)
     y.append(row['viewed_doc_titles'][0])
-    if 'qaPairs' in row['annotations'][0]:
+    """ if 'qaPairs' in row['annotations'][0]:
         annotations = row['annotations'][0]['qaPairs']
     else:
         continue
     for qa in annotations:
-        seq = change_token(qa['question']) + f" {token.DELIM_TOKEN} " + change_token(qa['answer'][0])+ f" {token.END_TOKEN}"
+        seq = f"{token.START_TOKEN} {token.QA_TOKEN} " + change_token(qa['question']) + change_token(qa['answer'][0])+ f" {token.END_TOKEN}"
         X.append(seq)
-        y.append(row['viewed_doc_titles'][0])
+        y.append(row['viewed_doc_titles'][0]) """
     
 # %%
 X
@@ -70,8 +69,7 @@ for item in y:
         count += 1
 # %%
 label_dict
-# %%
-import pickle
+
 # %%
 with open('./clean/labels_dictionary.pkl', 'wb') as handle:
     pickle.dump(label_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -89,9 +87,7 @@ y_train.shape
 with open('./clean/labels.pkl', 'wb') as handle:
     pickle.dump(y_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 # %%
-max_length = 171
-# %%
-from preprocessing.text import TextProcessor
+max_length = 151
 # %%
 text_handler = TextProcessor(tokenizer_path='./tokenizer')
 # %%
@@ -102,3 +98,7 @@ x_train.shape
 with open('./clean/inputs.pkl', 'wb') as handle:
     pickle.dump(x_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 #%%
+x_train.shape
+# %%
+y_train.shape
+# %%

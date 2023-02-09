@@ -31,7 +31,7 @@ class BLEU:
         length_ref = (label != 0).sum()
         length_pred = (output != 0).sum()
         if length_pred >= length_ref:
-            return torch.exp(torch.tensor(1 - (length_ref/length_pred), dtype=torch.float32)).requires_grad
+            return torch.exp(torch.tensor(1 - (length_ref/length_pred), dtype=torch.float32))
         return 1
 
     def score(self, outputs: torch.Tensor, labels: torch.Tensor):
