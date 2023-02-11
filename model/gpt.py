@@ -36,70 +36,83 @@ class GPT:
                 dropout_rate: float = 0.1, 
                 eps: float = 0.1, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
+                learning_rate: float = 0.006,
                 checkpoint: str = None):
         self.model = GPTModel(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
         self.embedding_dim = embedding_dim
         self.checkpoint = checkpoint
+        self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
         self.metric = BLEU()
+        self.criterion = nn.CrossEntropyLoss()
+
+        self.running_loss = 0.0
+        self.bleu_score = 0.0
+        self.running_accuracy = 0.0
+
+        self.epoch = 0
     
     def fit(self, train_data: torch.Tensor, batch_size: int = 1, epochs: int = 1, show_info: int = 1):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
 
-        optimizer = optim.Adam(params=self.model.parameters(), lr=0.0006)
+        
         # scheduler = ScheduledOptimizer(optimizer=optimizer, embedding_dim=self.embedding_dim, warmup_steps=4000)
         dataloader = self.build_dataset(inputs=train_data, batch_size=batch_size)
 
-        for epoch in range(epochs):
-            running_loss = 0.0
-            running_accuracy = 0.0
-            bleu_score = 0.0
-            # accuracy_task = 0.0
+        for _ in range(epochs):
+
+            self.epoch += 1
 
             for index, data in enumerate(dataloader, 0):
-                labels = data[0][:, 1:]
-                inputs = data[0][:, :-1]
-
-                # tasks = data[1]
-
-                _, look_ahead_mask = generate_mask(inputs)
-
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-                # tasks = tasks.type(torch.LongTensor).to(device)
-                look_ahead_mask = look_ahead_mask.to(device)
-
-                optimizer.zero_grad()
-                # scheduler.zero_grad()
-
-                outputs = self.model(inputs, look_ahead_mask, True)
-
-                # task_proba = outputs[1][:, -1, :]
-
-                loss = self.loss_function(outputs, labels)
-
-                loss.backward()
-                optimizer.step()
-                # scheduler.step()
-
-                _, predicted = torch.max(outputs, dim=-1)
-
-                running_loss += loss.item()
-                running_accuracy += self.accuracy_function(predicted, labels)
-                bleu_score += self.metric.score(outputs=predicted, labels=labels)
-                # accuracy_task += self.accuracy_function_task(outputs=task_proba, labels=task
+                # training process
+                self.train_step(data)
                 
                 if index != 0 and index%show_info == 0:
-                    print(f"Epoch: {epoch + 1} Batch: {index} Loss: {(running_loss/show_info):.2f} Accuracy: {(running_accuracy/show_info):.2f}% BLEU: {(bleu_score/(show_info)):.2f}%")
-                    running_loss = 0.0
-                    running_accuracy = 0.0
-                    bleu_score = 0.0
+                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.running_loss/show_info):.2f} Accuracy: {(self.running_accuracy/show_info):.2f}% BLEU: {(self.bleu_score/(show_info)):.2f}%")
+                    self.running_loss = 0.0
+                    self.running_accuracy = 0.0
+                    self.bleu_score = 0.0
                     # accuracy_task = 0.0
 
         if self.checkpoint is not None:
             self.save_model(self.checkpoint)
 
-    
+    def train_step(self, data: torch.Tensor):
+        inputs = data[0][:, :-1]
+        labels = data[0][:, 1:]
+
+        # tasks = data[1]
+
+        _, look_ahead_mask = generate_mask(inputs)
+
+        inputs = inputs.to(device)
+        labels = labels.to(device)
+        # tasks = tasks.type(torch.LongTensor).to(device)
+        look_ahead_mask = look_ahead_mask.to(device)
+
+        self.optimizer.zero_grad()
+        # scheduler.zero_grad()
+
+        # Feed Forward Propagation
+        outputs = self.model(inputs, look_ahead_mask, True)
+
+        # task_proba = outputs[1][:, -1, :]
+
+        loss = self.loss_function(outputs, labels)
+
+        # Backpropagation
+        loss.backward()
+        self.optimizer.step()
+        # scheduler.step()
+
+        _, predicted = torch.max(outputs, dim=-1)
+
+        self.running_loss += loss.item()
+        self.running_accuracy += self.accuracy_function(predicted, labels)
+        self.bleu_score += self.metric.score(outputs=predicted, labels=labels)
+        # accuracy_task += self.accuracy_function_task(outputs=task_proba, labels=task
+
+
     def build_dataset(self, inputs: torch.Tensor, batch_size: int):
         dataset = TensorDataset(inputs)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -115,15 +128,13 @@ class GPT:
 
     def loss_function(self, outputs: torch.Tensor, labels: torch.Tensor):
         batch_size = labels.size(0)
-
-        criterion = nn.CrossEntropyLoss()
         total_loss = 0.0
 
         # mask = torch.logical_not(labels == 0).type(torch.int64)
         # tasks_loss = criterion(tasks_proba, tasks)
         
         for batch in range(batch_size):
-            loss = criterion(outputs[batch], labels[batch])
+            loss = self.criterion(outputs[batch], labels[batch])
             total_loss += loss
         
         total_loss = (total_loss/(batch_size))
@@ -134,7 +145,10 @@ class GPT:
 
     def save_model(self, path: str):
         torch.save({
-            'model_state_dict': self.model.state_dict()
+            'epoch': self.epoch,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'loss': self.running_loss
         }, path)
         print(f"Your Model Saved at {path}")
 
@@ -142,6 +156,10 @@ class GPT:
         if os.path.exists(path) == True:
             checkpoint = torch.load(path)
             self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+            self.epoch = checkpoint['epoch']
+            self.running_loss = checkpoint['loss']
+
 
     def info(self):
         self.load_model(self.checkpoint)

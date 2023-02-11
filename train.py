@@ -25,7 +25,7 @@ vocab_size
 # %%
 # task_size
 # %%
-gpt = GPT(vocab_size=vocab_size, checkpoint="./saved_models/model3")
+gpt = GPT(vocab_size=vocab_size)
 # %%
 X_train = torch.tensor(X_train)
 # y_train = torch.tensor(y_train)
