@@ -35,20 +35,22 @@ def change_list(sequences: list):
 # %%
 for index, row in df.iterrows():
     answer = f" {token.OR_TOKEN} ".join(change_list(sequences=row['nq_answer']))
-    sequence = f"{token.START_TOKEN} {token.QA_TOKEN} " + change_token(row['question'])  + answer + f" {token.END_TOKEN}"
+    sequence = f"{token.START_TOKEN} " + change_token(row['question']) + f" {token.DELIM_TOKEN} "  + answer + f" {token.END_TOKEN}"
     X.append(sequence)
     y.append(row['viewed_doc_titles'][0])
-    """ if 'qaPairs' in row['annotations'][0]:
+    if 'qaPairs' in row['annotations'][0]:
         annotations = row['annotations'][0]['qaPairs']
     else:
         continue
     for qa in annotations:
-        seq = f"{token.START_TOKEN} {token.QA_TOKEN} " + change_token(qa['question']) + change_token(qa['answer'][0])+ f" {token.END_TOKEN}"
+        seq = f"{token.START_TOKEN} " + change_token(qa['question']) + f" {token.DELIM_TOKEN} "  + change_token(qa['answer'][0])+ f" {token.END_TOKEN}"
         X.append(seq)
-        y.append(row['viewed_doc_titles'][0]) """
+        y.append(row['viewed_doc_titles'][0])
     
 # %%
 X
+#%%
+len(X)
 # %%
 y
 # %%

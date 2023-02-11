@@ -23,19 +23,18 @@ class GPTModel(nn.Module):
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
         x = self.embedding_layer(x)
         output = self.decoder(x, mask, training)
-
         return output
 
 
 class GPT:
     def __init__(self,
                 vocab_size: int, 
-                n: int = 12, 
-                embedding_dim: int = 768, 
-                heads: int = 12, 
+                n: int = 6, 
+                embedding_dim: int = 512, 
+                heads: int = 8, 
                 d_ff: int = 2048, 
                 dropout_rate: float = 0.1, 
-                eps: float = 0.1,
+                eps: float = 0.1, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
                 checkpoint: str = None):
         self.model = GPTModel(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
@@ -47,8 +46,8 @@ class GPT:
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
 
-        optimizer = optim.Adam(params=self.model.parameters())
-        scheduler = ScheduledOptimizer(optimizer=optimizer, embedding_dim=self.embedding_dim, warmup_steps=4000)
+        optimizer = optim.Adam(params=self.model.parameters(), lr=0.0006)
+        # scheduler = ScheduledOptimizer(optimizer=optimizer, embedding_dim=self.embedding_dim, warmup_steps=4000)
         dataloader = self.build_dataset(inputs=train_data, batch_size=batch_size)
 
         for epoch in range(epochs):
@@ -70,8 +69,8 @@ class GPT:
                 # tasks = tasks.type(torch.LongTensor).to(device)
                 look_ahead_mask = look_ahead_mask.to(device)
 
-                # optimizer.zero_grad()
-                scheduler.zero_grad()
+                optimizer.zero_grad()
+                # scheduler.zero_grad()
 
                 outputs = self.model(inputs, look_ahead_mask, True)
 
@@ -80,8 +79,8 @@ class GPT:
                 loss = self.loss_function(outputs, labels)
 
                 loss.backward()
-                # optimizer.step()
-                scheduler.step()
+                optimizer.step()
+                # scheduler.step()
 
                 _, predicted = torch.max(outputs, dim=-1)
 
@@ -105,6 +104,7 @@ class GPT:
         dataset = TensorDataset(inputs)
         dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         return dataloader
+
 
     def accuracy_function(self, outputs: torch.Tensor, labels: torch.Tensor):
         same = torch.eq(labels, outputs).type(torch.int64)
@@ -155,8 +155,6 @@ class GPT:
         self.load_model(self.checkpoint)
         sequence = sequence.to(device)
 
-        length = sequence.size(1)
-
         for i in range(max_length):
             _, look_ahead_mask = generate_mask(sequence)
             look_ahead_mask = look_ahead_mask.to(device)
@@ -172,5 +170,5 @@ class GPT:
 
             sequence = torch.concat([sequence, predicted_id], dim=-1)
 
-        return sequence[:, length: ]
+        return sequence
     

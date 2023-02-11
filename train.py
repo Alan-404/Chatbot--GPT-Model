@@ -25,12 +25,12 @@ vocab_size
 # %%
 # task_size
 # %%
-gpt = GPT(vocab_size=vocab_size, checkpoint='./saved_models/model1')
+gpt = GPT(vocab_size=vocab_size, checkpoint="./saved_models/model3")
 # %%
 X_train = torch.tensor(X_train)
 # y_train = torch.tensor(y_train)
 #%%
-gpt.fit(X_train, batch_size=10, epochs=10)
+gpt.fit(X_train, batch_size=20, epochs=10, show_info=10)
 # %%
-gpt.save_model("./saved_models/model1")
+gpt.save_model("./saved_models/model3")
 # %%
