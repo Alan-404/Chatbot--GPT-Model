@@ -18,16 +18,16 @@ class Decoder(nn.Module):
         self.embedding_dim = embedding_dim
         self.to(device)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
         x = x + self.positional_encoding.generate_position(embedding_dim=self.embedding_dim, length=x.size(1)).to(device)
         for layer in self.decoder_layers:
             x = layer(x, mask, training)
 
-        text = self.linear(x)
+        x = self.linear(x)
         
         # task = self.linear_task(x)
 
-        text = F.softmax(text, dim=-1)
+        x = F.softmax(x, dim=-1)
         # task = F.softmax(task, dim=-1)
 
-        return text
+        return x

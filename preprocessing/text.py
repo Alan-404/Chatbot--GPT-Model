@@ -8,15 +8,6 @@ class TextProcessor:
         self.tokenizer_path = tokenizer_path
         self.tokenizer = None
 
-    def preprocess_sequence(self, sequence: str):
-        print(sequence)
-        sequence = sequence.strip()
-        sequence = sequence.lower()
-        sequence = re.sub(r"([?.!,¿,'-_])", "", sequence)
-        sequence = re.sub(r'"', '', sequence)
-        sequence = re.sub(r'\s\s+', ' ', sequence)
-        return sequence
-
     def __load_tokenizer(self):
         if os.path.exists(self.tokenizer_path + "/tokenizer.pkl") == True:
             with open(self.tokenizer_path + "/tokenizer.pkl", 'rb') as handle:
@@ -33,18 +24,17 @@ class TextProcessor:
             pickle.dump(self.tokenizer, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     def __build_tokenizer(self, sequences: list):
-        for i in range(len(sequences)):
-            sequences[i] = self.preprocess_sequence(sequence=sequences[i])
         self.tokenizer.fit_to_texts(sequences)
 
     def process(self, sequences: list, max_length: int, padding: str = "post", truncating: str = "post"):
-        self.__load_tokenizer()
-        if len(self.tokenizer.word_counts) == 0:
-            self.__build_tokenizer(sequences)
-            self.__save_tokenizer()
-        else:
-            self.tokenizer.fit_to_texts(sequences=sequences)
+        # self.__load_tokenizer()
         digit_sequences = self.tokenizer.texts_to_sequences(sequences)
         padded_sequences = self.tokenizer.pad_sequences(digit_sequences, maxlen=max_length, padding=padding, truncating=truncating)
 
         return padded_sequences
+
+    def fit(self, sequences: list):
+        self.__load_tokenizer()
+        self.__build_tokenizer(sequences=sequences)
+        self.__save_tokenizer()
+

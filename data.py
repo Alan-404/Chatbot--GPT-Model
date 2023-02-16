@@ -16,6 +16,7 @@ type(df['annotations'][0][0]['qaPairs'])
 # %%
 X = []
 y = []
+sentences = []
 # %%
 def change_token(sequence: str):
     sequence = re.sub("\u2026", f" {token.TRIPLE_DOT_TOKEN}", sequence)
@@ -35,17 +36,20 @@ def change_list(sequences: list):
 # %%
 for index, row in df.iterrows():
     answer = f" {token.OR_TOKEN} ".join(change_list(sequences=row['nq_answer']))
-    sequence = f"{token.START_TOKEN} " + change_token(row['question']) + f" {token.DELIM_TOKEN} "  + answer + f" {token.END_TOKEN}"
+    sequence = f"{token.START_TOKEN} " + change_token(row['question']) + f" {token.DELIM_TOKEN}"
+    answer = answer + f" {token.END_TOKEN}"
+    sentence = sequence + " " + answer
     X.append(sequence)
-    y.append(row['viewed_doc_titles'][0])
-    if 'qaPairs' in row['annotations'][0]:
+    y.append(answer)
+    sentences.append(sentence)
+    """ if 'qaPairs' in row['annotations'][0]:
         annotations = row['annotations'][0]['qaPairs']
     else:
         continue
     for qa in annotations:
         seq = f"{token.START_TOKEN} " + change_token(qa['question']) + f" {token.DELIM_TOKEN} "  + change_token(qa['answer'][0])+ f" {token.END_TOKEN}"
         X.append(seq)
-        y.append(row['viewed_doc_titles'][0])
+        y.append(row['viewed_doc_titles'][0]) """
     
 # %%
 X
@@ -57,50 +61,35 @@ y
 len(X)
 # %%
 len(y)
+#%%
+len(sentences)
 # %%
 import numpy as np
 # %%
-np.unique(y)
+text_handler = TextProcessor(tokenizer_path='./tokenizer')
 # %%
-label_dict = dict()
+text_handler.fit(sequences=X+y)
 # %%
-count = 1
-for item in y:
-    if item not in label_dict:
-        label_dict[item] = count
-        count += 1
+X_train = text_handler.process(X, max_length=64)
+y_train = text_handler.process(y, max_length=64)
 # %%
-label_dict
-
-# %%
-with open('./clean/labels_dictionary.pkl', 'wb') as handle:
-    pickle.dump(label_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
-# %%
-y_train = []
-for item in y:
-    y_train.append(label_dict[item])
+X_train
 # %%
 y_train
 # %%
-y_train = np.array(y_train)
+text_handler.tokenizer.word_index
 # %%
-y_train.shape
+X
 # %%
-with open('./clean/labels.pkl', 'wb') as handle:
-    pickle.dump(y_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-# %%
-max_length = 151
-# %%
-text_handler = TextProcessor(tokenizer_path='./tokenizer')
-# %%
-x_train = text_handler.process(sequences=X, max_length=max_length)
-# %%
-x_train.shape
+text_handler.tokenizer.word_index['__delim__']
 # %%
 with open('./clean/inputs.pkl', 'wb') as handle:
-    pickle.dump(x_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
-#%%
-x_train.shape
+    pickle.dump(X_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 # %%
-y_train.shape
+with open('./clean/outputs.pkl', 'wb') as handle:
+    pickle.dump(y_train, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# %%
+X+y
+# %%
+len(X+y)
 # %%

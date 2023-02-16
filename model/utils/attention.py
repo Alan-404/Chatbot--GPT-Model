@@ -32,7 +32,7 @@ class MultiHeadAttention(nn.Module):
 
         return output, attention_weights
 
-    def split(self, x: torch.Tensor):
+    def split(self, x: torch.Tensor) -> torch.Tensor:
         batch_size = x.size(0)
         length = x.size(1)
 

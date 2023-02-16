@@ -1,15 +1,34 @@
 import numpy as np
 import re
+from .replace import Replacer
+
 class Tokenizer:
     def __init__(self):
         self.word_index = dict()
+        self.num_index = dict()
         self.word_counts = dict()
         self.count = 0
 
+        self.replacer = Replacer()
+
+    def handle_genetive(self, sequence:str):
+        texts = sequence.split(' ')
+        pattern = r"(\w+)'s"
+        pronoun = ['it', 'he', 'she']
+        for i in range(len(texts)):
+            check = re.findall(pattern, texts[i])
+            if len(check) != 0 and check[0] in pronoun:
+                texts[i] = re.sub(pattern, '\g<1> is', texts[i])
+            else:
+                texts[i] = re.sub(pattern, '\g<1> is __genetive__', texts[i])
+        return " ".join(texts)
+
     def processing_sequence(self, sequence: str):
         sequence = sequence.lower()
-        re.sub(r'([?.!,¿@=+/#])', '', sequence)
-        re.sub(r'\s\s+', ' ', sequence)
+        sequence = re.sub(r'([?!,¿@=+/#])', '', sequence)
+        sequence = re.sub(r'\s\s+', ' ', sequence)
+        sequence = self.handle_genetive(sequence=sequence)
+        # sequence = self.replacer.replace(sequence)
         sequence = sequence.strip()
         
         return sequence
@@ -20,6 +39,7 @@ class Tokenizer:
             if word not in self.word_index:
                 self.count += 1
                 self.word_index[word] = self.count
+                self.num_index[self.count] = word
                 self.word_counts[word] = 1
             else:
                 self.word_counts[word] += 1

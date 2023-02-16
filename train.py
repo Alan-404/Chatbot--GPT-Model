@@ -7,7 +7,7 @@ import numpy as np
 with open('./clean/inputs.pkl', 'rb') as handle:
     X_train = pickle.load(handle)
 # %%
-with open('./clean/labels.pkl', 'rb') as handle:
+with open('./clean/outputs.pkl', 'rb') as handle:
     y_train = pickle.load(handle)
 # %%
 with open('./tokenizer/tokenizer.pkl', 'rb') as handle:
@@ -25,12 +25,20 @@ vocab_size
 # %%
 # task_size
 # %%
-gpt = GPT(vocab_size=vocab_size)
+gpt = GPT(vocab_size=vocab_size, checkpoint="./saved_models/chatbot")
+# %%
+
 # %%
 X_train = torch.tensor(X_train)
-# y_train = torch.tensor(y_train)
+y_train = torch.tensor(y_train)
 #%%
-gpt.fit(X_train, batch_size=20, epochs=10, show_info=10)
+X_train.size()
 # %%
-gpt.save_model("./saved_models/model3")
+y_train.size()
+# %%
+
+#%%
+gpt.fit(X_train, y_train, batch_size=50, epochs=10, show_info=10)
+# %%
+gpt.save_model("./saved_models/chatbot")
 # %%
