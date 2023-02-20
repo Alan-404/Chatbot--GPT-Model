@@ -1,56 +1,66 @@
 #%%
-import pandas as pd
+import torch
+import spacy
 import numpy as np
-from model.gpt import GPT
-from preprocessing.text import TextProcessor
-from preprocessing.token_handle import TokenHandler
+import pandas as pd
 # %%
-df = pd.read_json('./datasets/conversation.json')
+from preprocessing.text import TextProcessor
+# %%
+df = pd.read_json('./datasets/train.json')
 # %%
 df.head(10)
 # %%
-inputs = []
-labels = []
+df.columns
 # %%
-for conversation in df['conversation']:
-    for input in conversation['input']:
-        for answer in conversation['answer']:
-            inputs.append(input)
-            labels.append(answer)
+data = list()
 # %%
-inputs
+for index, row in df.iterrows():
+    data.append(row['question'])
+    for answer in row['nq_answer']:
+        data.append(answer)
 # %%
-labels
+len(data)
 # %%
-sequences = inputs + labels
+text_processor = TextProcessor('./pretrain/pretrain.pkl')
 # %%
-sequences
+data
 # %%
-token_handler = TokenHandler()
+train = text_processor.process(sequences=data, max_len=64, start_token=True, end_token=True)
 # %%
-sequences = token_handler.process(sequences=sequences)
+train
 # %%
-sequences
+train.shape
 # %%
-text_processor = TextProcessor("./pretrain")
+import pickle
 # %%
-text_processor.fit(sequences=sequences)
+with open('./clean/pretrain_data.pkl', 'wb') as handle:
+    pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
 # %%
-text_processor.tokenizer.word_index
+from model.gpt import GPT
 # %%
-import torch
+with open('./clean/pretrain_data.pkl', 'rb') as handle:
+    train = pickle.load(handle)
 # %%
-sequences = text_processor.process(sequences=sequences, max_length=64)
+with open('./pretrain/pretrain.pkl', 'rb') as handle:
+    tokenizer = pickle.load(handle)
 # %%
-sequences
+
 # %%
-data = torch.tensor(sequences)
+
 # %%
-token_size = len(text_processor.tokenizer.word_index) + 1
+token_size = tokenizer.num_tokens + 1
+# %%
+token_size
+# %%
+
 # %%
 gpt = GPT(vocab_size=token_size)
+#%%
+import torch
 # %%
-gpt.pretrain(sequences=data, batch_size=20, epochs=20)
+inputs = torch.tensor(train)
 # %%
-gpt.save_model('./saved_models/pretrain.pt')
+
+# %%
+gpt.fit(inputs=inputs, batch_size=32, epochs=5, shuffle_data=True, mini_batch=10)
 # %%

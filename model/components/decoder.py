@@ -14,7 +14,7 @@ class Decoder(nn.Module):
         self.decoder_layers = [DecoderLayer(embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation) for _ in range(n)]
 
         self.linear = nn.Linear(in_features=embedding_dim, out_features=vocab_size)
-        # self.linear_task = nn.Linear(in_features=embedding_dim, out_features=task_size)
+
         self.embedding_dim = embedding_dim
         self.to(device)
 
@@ -24,10 +24,7 @@ class Decoder(nn.Module):
             x = layer(x, mask, training)
 
         x = self.linear(x)
-        
-        # task = self.linear_task(x)
 
         x = F.softmax(x, dim=-1)
-        # task = F.softmax(task, dim=-1)
 
         return x

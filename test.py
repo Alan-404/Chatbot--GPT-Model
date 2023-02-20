@@ -1,31 +1,29 @@
 #%%
-import re 
+from preprocessing.text import TextProcessor
 # %%
-sequence = "he's"
+sequences = ["She loves going to New York city.", 'hello, world']
 # %%
-pattern = r"(\w+)'s"
+text_processor = TextProcessor("test/test.pkl")
 # %%
-pronoun = ['he', 'she', 'it']
+train = text_processor.process(sequences=sequences, max_len=20, start_token=True, end_token=True)
 # %%
-def handle(sequence: str):
-    texts = sequence.split(' ')
-    for i in range(len(texts)):
-        check = re.findall(pattern, texts[i])
-        if len(check) != 0 and check[0] in pronoun:
-            texts[i] = re.sub(pattern, '\g<1> __BE__', texts[i])
-        else:
-            texts[i] = re.sub(pattern, '\g<1> __GENETIVE__', texts[i])
-    return " ".join(texts)
-# %%
-handle("Tom's students")
+train
+
 # %%
 
 # %%
-result = re.findall(pattern, sequence)
-# %%r
-result[0]
+text_processor.tokenizer.token_index
 # %%
-
+import spacy
+# %%
+text = "Tom loves going to New York city"
+# %%
+nlp = spacy.load('en_core_web_sm')
+# %%
+doc = nlp(text)
+for token in doc:
+    print(token.tag_)
+    print(token.lemma_)
 # %%
 
 # %%

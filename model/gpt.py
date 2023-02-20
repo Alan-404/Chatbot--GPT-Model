@@ -45,179 +45,150 @@ class GPT:
         self.metric = BLEU()
         self.criterion = nn.CrossEntropyLoss()
 
-        self.running_loss = 0.0
+        self.entropy_loss = 0.0
         self.bleu_score = 0.0
-        self.running_accuracy = 0.0
 
         self.epoch = 0
-    
-    def fit(self, inputs: torch.Tensor, batch_size: int = 1, epochs: int = 1, show_info: int = 1):
-        if self.checkpoint is not None:
-            self.load_model(self.checkpoint)
-        """ for param in self.model.parameters():
-            param.requires_grad = False """
-        
-        # scheduler = ScheduledOptimizer(optimizer=optimizer, embedding_dim=self.embedding_dim, warmup_steps=4000)
-        dataloader = self.build_dataset(inputs=inputs, batch_size=batch_size)
-        for _ in range(epochs):
 
-            self.epoch += 1
+    def build_dataset(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, shuffle: bool = True):
+        if labels is None:
+            dataset = TensorDataset(inputs)
+        else:
+            dataset = TensorDataset(inputs, labels)
 
-            for index, data in enumerate(dataloader, 0):
-                # training process
-                self.train_step(data)
-                
-                if index != 0 and index%show_info == 0:
-                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.running_loss/show_info)}")
-                    self.running_loss = 0.0
-                    self.running_accuracy = 0.0
-                    self.bleu_score = 0.0
+        dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
-        if self.checkpoint is not None:
-            self.save_model(self.checkpoint)
-
-    def train_step(self, data: torch.Tensor):
-        inputs = data[0][:, :-1].to(device)
-        labels = data[0][:, 1:].to(device)
-        # tasks = data[1]
-
-        _, look_ahead_mask = generate_mask(inputs)
-
-        self.optimizer.zero_grad()
-
-        # Feed Forward Propagation
-        with torch.set_grad_enabled(True):
-            outputs = self.model(inputs, look_ahead_mask, True)
-            loss = self.loss_function(outputs, labels)
-
-        # Backpropagation
-        loss.backward()
-        self.optimizer.step()
-        # scheduler.step()
-
-        # _, predicted = torch.max(outputs, dim=-1)
-
-        self.running_loss += loss.item()
-        # self.running_accuracy += self.accuracy_function(predicted, labels)
-        # self.bleu_score += self.metric.score(outputs=predicted, labels=labels)
-
-    def build_dataset(self, inputs: torch.Tensor, batch_size: int):
-        dataset = TensorDataset(inputs)
-        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
         return dataloader
 
+    def __save_model(self, checkpoint: str):
+        torch.save({
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': self.epoch,
+            'loss': self.entropy_loss
+        }, checkpoint)
 
-    def accuracy_function(self, outputs: torch.Tensor, labels: torch.Tensor):
-        same = torch.eq(labels, outputs).type(torch.int64)
-
-        # mask = torch.logical_not(labels == 0).type(torch.int64)
-
-        return same.sum()/(labels.size(0)*labels.size(1))
-
-    def loss_function(self, outputs: torch.Tensor, labels: torch.Tensor):
-        batch_size = labels.size(0)
-        total_loss = 0.0
-
-        mask = torch.logical_not(labels == 0).type(torch.int64)
-        # tasks_loss = criterion(tasks_proba, tasks)
-        
-        for batch in range(batch_size):
-            loss = self.criterion(outputs[batch], labels[batch])
-            loss = loss*mask[batch]
-            total_loss += loss.sum()/mask.sum()
-        
-        total_loss = (total_loss/(batch_size))
-        # total_loss = total_loss*mask
-        # print(mask.sum())
-
-        return total_loss
-
-    def save_model(self, path: str):
-        with open(path, 'wb') as file:
-            torch.save({
-                'epoch': self.epoch,
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'loss': self.running_loss
-            }, file)
-        self.checkpoint = path
-        print(f"Your Model Saved at {path}")
-
-    def load_model(self, path: str):
-        if os.path.exists(path) == True:
-            checkpoint = torch.load(path)
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.epoch = checkpoint['epoch']
-            self.running_loss = checkpoint['loss']
-
-
-    def info(self):
-        self.load_model(self.checkpoint)
-        print("Model's State Dict: ")
-        for param_tensor in self.model.state_dict():
-            print(param_tensor, "\t", self.model.state_dict()[param_tensor].size())
-        print("===================================")
-        for param_tensor in self.model.decoder.state_dict():
-            print(param_tensor, "\t", self.model.decoder.state_dict()[param_tensor].size())
-        
-    
-    def predict(self, sequence: torch.Tensor, max_length: int, end_token: int):
-        self.load_model(self.checkpoint)
+    def __load_model(self, checkpoint: str):
+        checkpoint_data = torch.load(checkpoint)
+        self.model.load_state_dict(checkpoint_data['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint_data['optimizer_state_dict'])
+        self.epoch = checkpoint_data['epoch']
+        self.entropy_loss = checkpoint_data['loss']
         self.model.eval()
-        sequence = sequence.to(device)
 
-        for i in range(max_length):
-            _, look_ahead_mask = generate_mask(sequence)
-            look_ahead_mask = look_ahead_mask.to(device)
-            
-            with torch.no_grad():
-                preds = self.model(sequence, look_ahead_mask, False)
+    def save_model(self, path: str = None):
+        if path is not None:
+            self.__save_model(path)
+            self.checkpoint = path
+        elif self.checkpoint is not None:
+            self.__save_model(self.checkpoint)
+        else:
+            print("Checkpoint not found")
 
-            preds = preds[:, -1, :]
+    def load_model(self, path: str = None):
+        if path is not None:
+            self.__load_model(path)
+            self.checkpoint = path
+        elif self.checkpoint is not None:
+            self.__load_model(self.checkpoint)
+        else:
+            print("Checkpoint not found")
 
-            _, predicted_id = torch.max(preds, dim=-1)
-            if predicted_id == end_token:
-                break
-            if predicted_id == 0:
-                continue
-            sequence = torch.concat([sequence, predicted_id.unsqueeze(0)], dim=-1)
+        
+    def cross_entropy_loss(self, outputs: torch.Tensor, labels: torch.Tensor):
+        batch_size = labels.size(0)
+        loss = 0.0
+        for batch in range(batch_size):
+            loss += self.criterion(outputs[batch], labels[batch])
 
-        return sequence
+        loss = loss/batch_size
 
+        return loss
 
-    def pretrain(self, sequences: torch.Tensor, batch_size: int, epochs: int = 1):
+    def pretrain_step(self, data: torch.Tensor):
+        inputs = data[:, :-1]
+        labels = data[:, 1:]
+
+        _, look_ahead_mask = generate_mask(inputs)
+
+        outputs = self.model(inputs, look_ahead_mask, True)
+
+        _, preds = torch.max(outputs, dim=-1)
+
+        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+
+        self.entropy_loss += self.cross_entropy_loss(outputs=outputs, labels=labels)
+
+    def fine_tune_step(self, inputs: torch.Tensor, labels: torch.Tensor):
+        _, look_ahead_mask = generate_mask(inputs)
+
+        outputs = self.model(inputs, look_ahead_mask, True)
+
+        _, preds = torch.max(outputs, dim=-1)
+
+        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+
+        self.entropy_loss += self.cross_entropy_loss(outputs=outputs, labels=labels)
+
+    def fit(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         
-        dataset = TensorDataset(sequences)
-        dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
-
+        dataloader = self.build_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
+        
+        training_process = "Pretraininig"
+        
         for _ in range(epochs):
             self.epoch += 1
 
             for index, data in enumerate(dataloader, 0):
-                self.pretrain_step(data)
+                if labels is None:
+                    self.pretrain_step(data=data[0].to(device))
+                else:
+                    self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
+                    training_process = "Fine-tunning"
+                if index%(batch_size*mini_batch):
+                    # Statiscal
+                    print(f"{training_process} Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/(batch_size*mini_batch)):.4f}")
 
-                if index%batch_size==0:
-                    print(f"Epoch: {self.epoch} Loss: {self.running_loss}")
-                    self.running_loss = 0.0
-
+                    # Set default
+                    self.entropy_loss = 0.0
+                    self.bleu_score = 0.0
         
-    def pretrain_step(self, data: torch.Tensor):
-        inputs = data[0][:, :-1].to(device)
-        targets = data[0][:, 1:].to(device)
+        print("============Finished Training============")
 
-        _, look_ahead_mask = generate_mask(inputs)
-
-        with torch.set_grad_enabled(True):
-            outputs = self.model(inputs, look_ahead_mask, True)
-            loss = self.loss_function(outputs=outputs, labels=targets)
-
-        loss.backward()
-        self.optimizer.step()
-
-        self.running_loss += loss.item()
+    def __predict_token(self, input: torch.Tensor):
+        _, look_ahead_mask = generate_mask(input)
         
+        outputs = self.model(input, look_ahead_mask, False)
+
+        predict = outputs[:, -1, :]
+        _, token_id = torch.max(predict, dim=-1)
+
+        return token_id
+
+
+    def predict(self, data: torch.Tensor, limit_tokens: int, end_token: int):
+        if self.checkpoint is not None:
+            self.load_model(self.checkpoint)
+        else:
+            print("Model is not Trained")
+            return None
+        
+        data = data.to(device)
+
+        for _ in range(limit_tokens):
+            token = self.__predict_token(input=data)
+
+            if token == end_token:
+                break
             
+            data = torch.concat([data, token.unsqueeze(0)], dim=-1)
+
+        return data
+        
+
+
+
+
     
