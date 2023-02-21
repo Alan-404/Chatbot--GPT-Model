@@ -17,7 +17,8 @@ Components inside Decoder Layer
 ## II. Setup Environment
 1. Make Sure you have installed Python
 2. `Python version` in this Project: `3.10.9` 
-
+3. `cd {project_folder}`
+4. Install needed packages: `pip install requirements.txt`
 
 ## III. Parameters
 - `vocab_size` `(token_size)`: Number of tokens.

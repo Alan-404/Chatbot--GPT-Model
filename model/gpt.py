@@ -12,10 +12,10 @@ from typing import Union, Callable
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 class GPTModel(nn.Module):
-    def __init__(self, vocab_size: int,  n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float,activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]):
+    def __init__(self, token_size: int,  n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float,activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]):
         super().__init__()
-        self.embedding_layer = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
-        self.decoder = Decoder(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
+        self.embedding_layer = nn.Embedding(num_embeddings=token_size, embedding_dim=embedding_dim)
+        self.decoder = Decoder(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
         x = self.embedding_layer(x)
         output = self.decoder(x, mask, training)
@@ -24,7 +24,7 @@ class GPTModel(nn.Module):
 
 class GPT:
     def __init__(self,
-                vocab_size: int, 
+                token_size: int, 
                 n: int = 12, 
                 embedding_dim: int = 768, 
                 heads: int = 12, 
@@ -35,7 +35,7 @@ class GPT:
                 learning_rate: float = 0.0006,
                 checkpoint: str = None,
                 pretrained_model: str = None):
-        self.model = GPTModel(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
+        self.model = GPTModel(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
         self.model = self.model.to(device)
         self.embedding_dim = embedding_dim
         self.checkpoint = checkpoint
