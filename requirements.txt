@@ -1,0 +1,8 @@
+pip==23.0
+torch==1.31.1+cu117
+spacy==3.5.0
+en_core_web_sm==3.5.0
+pandas==1.5.3
+numpy==1.23.5
+scikit-learn==1.2.1
+wheel==0.38.4
