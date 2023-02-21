@@ -20,7 +20,7 @@ class DecoderLayer(nn.Module):
         self.layer_norm_1 = nn.LayerNorm(normalized_shape=embedding_dim, eps=eps)
         self.layer_norm_2 = nn.LayerNorm(normalized_shape=embedding_dim, eps=eps)
 
-        self.to(device)
+        self = self.to(device)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
         # sublayer 1

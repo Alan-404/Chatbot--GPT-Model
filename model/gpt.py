@@ -19,7 +19,6 @@ class GPTModel(nn.Module):
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
         self.decoder = Decoder(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
-        self.to(device)
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
         x = self.embedding_layer(x)
         output = self.decoder(x, mask, training)
@@ -39,10 +38,11 @@ class GPT:
                 learning_rate: float = 0.0006,
                 checkpoint: str = None):
         self.model = GPTModel(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
+        self.model = self.model.to(device)
         self.embedding_dim = embedding_dim
         self.checkpoint = checkpoint
         self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
-        self.metric = BLEU()
+        # self.metric = BLEU()
         self.criterion = nn.CrossEntropyLoss()
 
         self.entropy_loss = 0.0
@@ -50,7 +50,7 @@ class GPT:
 
         self.epoch = 0
 
-    def build_dataset(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, shuffle: bool = True):
+    def build_fine_tune_dataset(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, shuffle: bool = True):
         if labels is None:
             dataset = TensorDataset(inputs)
         else:
@@ -58,6 +58,11 @@ class GPT:
 
         dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
 
+        return dataloader
+
+    def build_pretrain_dataset(self, data: torch.Tensor, batch_size: int, shuffle: bool = True):
+        dataset = TensorDataset(data)
+        dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle)
         return dataloader
 
     def __save_model(self, checkpoint: str):
@@ -106,50 +111,79 @@ class GPT:
         return loss
 
     def pretrain_step(self, data: torch.Tensor):
+        self.optimizer.zero_grad()
         inputs = data[:, :-1]
         labels = data[:, 1:]
 
         _, look_ahead_mask = generate_mask(inputs)
 
+
+
         outputs = self.model(inputs, look_ahead_mask, True)
 
-        _, preds = torch.max(outputs, dim=-1)
+        # _, preds = torch.max(outputs, dim=-1)
 
-        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        # self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        loss = self.cross_entropy_loss(outputs=outputs, labels=labels)
+        loss.backward()
+        self.optimizer.step()
 
-        self.entropy_loss += self.cross_entropy_loss(outputs=outputs, labels=labels)
+        self.entropy_loss += loss.item()
 
     def fine_tune_step(self, inputs: torch.Tensor, labels: torch.Tensor):
+        self.optimizer.zero_grad()
         _, look_ahead_mask = generate_mask(inputs)
 
         outputs = self.model(inputs, look_ahead_mask, True)
 
-        _, preds = torch.max(outputs, dim=-1)
+        # _, preds = torch.max(outputs, dim=-1)
 
-        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        # self.bleu_score += self.metric.score(outputs=preds, labels=labels)
 
-        self.entropy_loss += self.cross_entropy_loss(outputs=outputs, labels=labels)
+        loss = self.cross_entropy_loss(outputs=outputs, labels=labels)
+        loss.backward()
+        self.optimizer.step()
 
-    def fit(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
+        self.entropy_loss += loss.item()
+
+    def pretrain(self, data: torch.Tensor, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         
-        dataloader = self.build_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
+        dataloader = self.build_pretrain_dataset(data=data, batch_size=batch_size, shuffle=shuffle_data)
+
+        for _ in range(epochs):
+            self.epoch += 1
+
+            for index, batch in enumerate(dataloader, 0):
+                self.pretrain_step(data=batch[0].to(device))
+
+                if index%mini_batch == 0:
+                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f}")
+
+                    # Set default
+                    self.entropy_loss = 0.0
+                    self.bleu_score = 0.0
+
+            
+
         
-        training_process = "Pretraininig"
+
+    def fine_tune(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
+        if self.checkpoint is not None:
+            self.load_model(self.checkpoint)
+        
+        dataloader = self.build_fine_tune_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
+        
         
         for _ in range(epochs):
             self.epoch += 1
 
             for index, data in enumerate(dataloader, 0):
-                if labels is None:
-                    self.pretrain_step(data=data[0].to(device))
-                else:
-                    self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
-                    training_process = "Fine-tunning"
-                if index%(batch_size*mini_batch):
+                self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
+                if index != 0 and index%(mini_batch-1) == 0:
                     # Statiscal
-                    print(f"{training_process} Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/(batch_size*mini_batch)):.4f}")
+                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0

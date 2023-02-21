@@ -10,7 +10,7 @@ class PositionWiseFeedForward(nn.Module):
         self.hidden_layer = nn.Linear(in_features=embedding_dim, out_features=d_ff)
         self.activation = activation
         self.output_layer = nn.Linear(in_features=d_ff, out_features=embedding_dim)
-        self.to(device)
+        self = self.to(device)
 
     def forward(self, x: torch.Tensor):
         x = self.hidden_layer(x)

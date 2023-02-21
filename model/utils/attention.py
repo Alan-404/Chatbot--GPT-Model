@@ -15,7 +15,7 @@ class MultiHeadAttention(nn.Module):
         self.linear_v = nn.Linear(in_features=embedding_dim, out_features=embedding_dim)
 
         self.linear_output = nn.Linear(in_features=embedding_dim, out_features=embedding_dim)
-        self.to(device)
+        self = self.to(device)
 
     def scaled_dot_product_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None):
         dk = torch.tensor(k.size(-1), dtype=torch.float32)

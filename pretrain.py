@@ -11,6 +11,16 @@ df = pd.read_json('./datasets/train.json')
 df.head(10)
 # %%
 df.columns
+#%%
+df['len'] = df['question'].apply(lambda x: len(x.split(' ')))
+# %%
+
+# %%
+df['len'].max()
+# %%
+
+# %%
+
 # %%
 data = list()
 # %%
@@ -25,32 +35,36 @@ text_processor = TextProcessor('./pretrain/pretrain.pkl')
 # %%
 data
 # %%
-train = text_processor.process(sequences=data, max_len=64, start_token=True, end_token=True)
+train = text_processor.process(sequences=data, max_len=32, start_token=True, end_token=True)
 # %%
-train
+text_processor.save_data(train, path="./clean", filename="pretrain_data.pkl")
+# %%
+train = text_processor.load_data("./clean/pretrain_data.pkl")
 # %%
 train.shape
 # %%
-import pickle
+text_processor.loadd_tokenizer("./pretrain/pretrain.pkl")
 # %%
-with open('./clean/pretrain_data.pkl', 'wb') as handle:
+text_processor.tokenizer.token_index
+# %%
+import pickle
+with open("./clean/pretrain_data.pkl", 'wb') as handle:
     pickle.dump(train, handle, protocol=pickle.HIGHEST_PROTOCOL)
+# %%
+
+# %%
+
 # %%
 from model.gpt import GPT
 # %%
-with open('./clean/pretrain_data.pkl', 'rb') as handle:
-    train = pickle.load(handle)
-# %%
-with open('./pretrain/pretrain.pkl', 'rb') as handle:
-    tokenizer = pickle.load(handle)
-# %%
 
 # %%
 
 # %%
-token_size = tokenizer.num_tokens + 1
+token_size = text_processor.tokenizer.num_tokens + 1
 # %%
 token_size
+
 # %%
 
 # %%
@@ -60,7 +74,13 @@ import torch
 # %%
 inputs = torch.tensor(train)
 # %%
+inputs.size()
+# %%
+inputs.device
+# %%
 
 # %%
-gpt.fit(inputs=inputs, batch_size=32, epochs=5, shuffle_data=True, mini_batch=10)
+gpt.pretrain(data=inputs, batch_size=64, epochs=5, shuffle_data=True, mini_batch=10)
+# %%
+gpt.save_model(path='./saved_models/pretrain.pt')
 # %%
