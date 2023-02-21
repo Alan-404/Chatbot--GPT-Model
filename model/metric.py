@@ -3,6 +3,9 @@ import numpy as np
 
 class BLEU:
     def __init__(self, n_grams: int = 4, uniform_weights: tuple | list = [0.25, 0.25, 0.25, 0.25]):
+        if n_grams != len(uniform_weights):
+            print("Confliced weights of grams")
+            return
         self.n_grams = n_grams
         self.uniform_weights = uniform_weights
 
@@ -31,7 +34,7 @@ class BLEU:
         length_ref = (label != 0).sum()
         length_pred = (output != 0).sum()
         if length_pred >= length_ref:
-            return torch.exp(torch.tensor(1 - (length_ref//length_pred), dtype=torch.float32))
+            return torch.exp(1 - (length_ref/length_pred))
         return 1
 
     def score(self, outputs: torch.Tensor, labels: torch.Tensor):

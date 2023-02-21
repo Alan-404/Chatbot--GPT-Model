@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from model.components.decoder import Decoder
 from model.utils.mask import generate_mask
 from model.metric import BLEU
+from model.loss import Perplexity
 from typing import Union, Callable
 
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
@@ -41,10 +42,12 @@ class GPT:
         self.checkpoint = checkpoint
         self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
         self.metric = BLEU()
+        self.perplexity_loss = Perplexity()
         self.criterion = nn.CrossEntropyLoss()
 
         self.entropy_loss = 0.0
         self.bleu_score = 0.0
+        self.perplexity = 0.0
 
         self.epoch = 0
 
@@ -122,12 +125,16 @@ class GPT:
 
         _, preds = torch.max(outputs, dim=-1)
 
-        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        
         loss = self.cross_entropy_loss(outputs=outputs, labels=labels)
         loss.backward()
         self.optimizer.step()
 
         self.entropy_loss += loss.item()
+
+        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        self.perplexity += self.perplexity_loss.loss(entropy_loss=loss)
+        
 
     def fine_tune_step(self, inputs: torch.Tensor, labels: torch.Tensor):
         self.optimizer.zero_grad()
@@ -152,17 +159,17 @@ class GPT:
         dataloader = self.build_pretrain_dataset(data=data, batch_size=batch_size, shuffle=shuffle_data)
 
         for _ in range(epochs):
-            self.epoch += 1
-
             for index, batch in enumerate(dataloader, 0):
                 self.pretrain_step(data=batch[0].to(device))
 
                 if index%mini_batch == 0:
-                    print(f"Epoch: {self.epoch} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
+                    print(f"Epoch: {self.epoch + 1} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f} Perplexity Loss: {(self.perplexity/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0
                     self.bleu_score = 0.0
+                    self.perplexity = 0.0
+            self.epoch += 1
 
         if self.checkpoint is not None:
             self.__save_model(self.checkpoint)
@@ -186,11 +193,12 @@ class GPT:
                 self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
                 if index%mini_batch == 0:
                     # Statiscal
-                    print(f"Epoch: {self.epoch} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
+                    print(f"Epoch: {self.epoch} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f} Perplexity Loss: {(self.perplexity/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0
                     self.bleu_score = 0.0
+                    self.perplexity = 0.0
         
         if self.checkpoint is not None:
             self.__save_model(self.checkpoint)
