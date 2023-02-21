@@ -2,4 +2,7 @@
 
 Generative Pre-trained Transformer (GPT)
 
-<img src="./assets/gpt_model.png">
+<figure>
+    <img src="./assets/gpt_model.png">
+    <figcaption>GPT Architecture</figcaption>
+</figure>
