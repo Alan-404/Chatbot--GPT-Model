@@ -1,25 +1,36 @@
 # GPT Model - Generative Pre-trained Transformer Model
 Design a chatbot system using GPT model.
 
-## 1. Architecture
+## I. Architecture
 <figure align="center">
     <img src="./assets/gpt_model.png">
     <figcaption>GPT Architecture</figcaption>
 </figure>
 
-## 2. Setup
-- pip install requirements.txt
-- Pretraining Stage
-- Fine-tunning Stage
+GPT Model uses multiples `Decoder Blocks` of `Transformer Architecuture`
+This Architecture has 2 sub layers of each Decoder Layer
+- Masked Multi-Head Attention to make token can see next token in sequence.
+- Position Wise Feed-Forward Networks
 
-## 3. Parameters
-- vocab_size (token_size): Number of tokens.
-- n: Number of Decoder Blocks.
-- embedding_dim: Dimention of Word2Vec.
-- heads: Number of heads in Multi-head attention.
-- d_ff: Number of hidden neutron in Position Wise Feed Forward Networks.
-- dropout_rate: Rate for Dropout Layer.
-- eps: Epsilon for Layer Norm.
-- activation: Activatin function in Position Wise Feed Forward Networks.
-- learning_rate: Learning Rate of Optimizer ADam.
-- checkpoint: Folder path of trained model.
+## II. Setup Environment
+1. Make Sure you have installed Python
+2. `Python version` in this Project: `3.10.9` 
+
+
+## III. Parameters
+- `vocab_size` `(token_size)`: Number of tokens.
+- `n`: Number of Decoder Blocks.
+- `embedding_dim`: Dimension of Word2Vec.
+- `heads`: Number of heads in Multi-head attention.
+- `d_ff`: Number of hidden neutron in Position Wise Feed Forward Networks.
+- `dropout_rate`: Rate for Dropout Layer.
+- `eps`: A value added to the denominator for numerical stability.
+- `activation`: Activatin function in Position Wise Feed Forward Networks.
+- `learning_rate`: Learning Rate of Optimizer ADam.
+- `checkpoint`: Folder path of trained model.
+
+## IV. Two Stages Training
+In GPT Model has 2 stages of training:
+- `Pretrain Stage`: Tranin model with large corpus to make model can see the next word if have a previous context (previous words).
+- `Fine-tune Stage`: Train model for Specific Task with pretrained model.
+1. Pre-training Stage

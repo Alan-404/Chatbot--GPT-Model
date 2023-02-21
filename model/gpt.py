@@ -8,9 +8,6 @@ from model.components.decoder import Decoder
 from model.utils.mask import generate_mask
 from model.metric import BLEU
 from typing import Union, Callable
-import pickle
-
-import os
 
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
@@ -33,22 +30,24 @@ class GPT:
                 heads: int = 12, 
                 d_ff: int = 2048, 
                 dropout_rate: float = 0.1, 
-                eps: float = 1e-5, 
+                eps: float = 1e-7, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
                 learning_rate: float = 0.0006,
-                checkpoint: str = None):
+                checkpoint: str = None,
+                pretrained_model: str = None):
         self.model = GPTModel(vocab_size=vocab_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
         self.model = self.model.to(device)
         self.embedding_dim = embedding_dim
         self.checkpoint = checkpoint
         self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
-        # self.metric = BLEU()
+        self.metric = BLEU()
         self.criterion = nn.CrossEntropyLoss()
 
         self.entropy_loss = 0.0
         self.bleu_score = 0.0
 
         self.epoch = 0
+
 
     def build_fine_tune_dataset(self, inputs: torch.Tensor, labels: torch.Tensor = None, batch_size: int = 1, shuffle: bool = True):
         if labels is None:
@@ -72,6 +71,8 @@ class GPT:
             'epoch': self.epoch,
             'loss': self.entropy_loss
         }, checkpoint)
+
+        print(f"Model Saved at {checkpoint}")
 
     def __load_model(self, checkpoint: str):
         checkpoint_data = torch.load(checkpoint)
@@ -117,13 +118,11 @@ class GPT:
 
         _, look_ahead_mask = generate_mask(inputs)
 
-
-
         outputs = self.model(inputs, look_ahead_mask, True)
 
-        # _, preds = torch.max(outputs, dim=-1)
+        _, preds = torch.max(outputs, dim=-1)
 
-        # self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
         loss = self.cross_entropy_loss(outputs=outputs, labels=labels)
         loss.backward()
         self.optimizer.step()
@@ -136,9 +135,9 @@ class GPT:
 
         outputs = self.model(inputs, look_ahead_mask, True)
 
-        # _, preds = torch.max(outputs, dim=-1)
+        _, preds = torch.max(outputs, dim=-1)
 
-        # self.bleu_score += self.metric.score(outputs=preds, labels=labels)
+        self.bleu_score += self.metric.score(outputs=preds, labels=labels)
 
         loss = self.cross_entropy_loss(outputs=outputs, labels=labels)
         loss.backward()
@@ -158,18 +157,19 @@ class GPT:
             for index, batch in enumerate(dataloader, 0):
                 self.pretrain_step(data=batch[0].to(device))
 
-                if index%mini_batch == 0:
-                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f}")
+                if index != 0 and index%(mini_batch) == 0:
+                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0
                     self.bleu_score = 0.0
 
-            
+        if self.checkpoint is not None:
+            self.__save_model(self.checkpoint)
 
         
 
-    def fine_tune(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
+    def fit(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         
@@ -183,13 +183,14 @@ class GPT:
                 self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
                 if index != 0 and index%(mini_batch-1) == 0:
                     # Statiscal
-                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f}")
+                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0
                     self.bleu_score = 0.0
         
-        print("============Finished Training============")
+        if self.checkpoint is not None:
+            self.__save_model(self.checkpoint)
 
     def __predict_token(self, input: torch.Tensor):
         _, look_ahead_mask = generate_mask(input)

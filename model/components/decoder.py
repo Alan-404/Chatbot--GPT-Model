@@ -10,7 +10,7 @@ class Decoder(nn.Module):
     def __init__(self, vocab_size: int, n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float, activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]):
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=vocab_size, embedding_dim=embedding_dim)
-        self.positional_encoding = PositionalEncoding()
+        self.positional_encoding = PositionalEncoding(embedding_dim=embedding_dim)
         self.decoder_layers = [DecoderLayer(embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation) for _ in range(n)]
 
         self.linear = nn.Linear(in_features=embedding_dim, out_features=vocab_size)
@@ -19,12 +19,10 @@ class Decoder(nn.Module):
         self.to(device)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
-        x = x + self.positional_encoding.generate_position(embedding_dim=self.embedding_dim, length=x.size(1)).to(device)
+        x = self.positional_encoding(x)
         for layer in self.decoder_layers:
             x = layer(x, mask, training)
 
         x = self.linear(x)
-
-        x = F.softmax(x, dim=-1)
 
         return x
