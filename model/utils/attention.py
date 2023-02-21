@@ -4,7 +4,7 @@ import torch.nn as nn
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads: int, embedding_dim: int):
+    def __init__(self, heads: int, embedding_dim: int) -> None:
         super().__init__()
         self.embedding_dim = embedding_dim
         self.heads = heads
@@ -17,7 +17,7 @@ class MultiHeadAttention(nn.Module):
         self.linear_output = nn.Linear(in_features=embedding_dim, out_features=embedding_dim)
         self = self.to(device)
 
-    def scaled_dot_product_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None):
+    def scaled_dot_product_attention(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
         dk = torch.tensor(k.size(-1), dtype=torch.float32)
 
         attention_scores = torch.matmul(q, k.transpose(-1, -2))
@@ -42,7 +42,7 @@ class MultiHeadAttention(nn.Module):
 
         return heads
 
-    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None):
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
         batch_size = q.size(0)
         length = q.size(1)
 

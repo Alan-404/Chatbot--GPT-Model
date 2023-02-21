@@ -40,7 +40,7 @@ def program(data_path: str, tokenizer_path: str, n: int, embedding_dim: int, hea
 
     token_size = text_processor.tokenizer.num_tokens + 1
     
-    gpt = GPT(vocab_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation, learning_rate=learning_rate, checkpoint=checkpoint)
+    gpt = GPT(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation, learning_rate=learning_rate, checkpoint=checkpoint)
     
     gpt.pretrain(data=dataset, epochs=epochs, batch_size=batch_size, shuffle_data=shuffle, mini_batch=mini_batch)
 
@@ -48,24 +48,24 @@ def program(data_path: str, tokenizer_path: str, n: int, embedding_dim: int, hea
 if __name__ == "__main__":
     if args.data is None or args.tokenizer is None or args.checkpoint is None:
         print("Missing Data")
-
-    program(
-        data_path=args.data,
-        tokenizer_path=args.tokenizer,
-        n=args.n,
-        embedding_dim=args.embedding_dim,
-        heads=args.heads,
-        d_ff=args.d_ff,
-        dropout_rate=args.dropout_rate,
-        eps=args.eps,
-        activation=args.activation,
-        learning_rate=args.learning_rate,
-        checkpoint=args.checkpoint,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        mini_batch=args.mini_batch,
-        shuffle=args.shuffle_data
-    )
+    else:
+        program(
+            data_path=args.data,
+            tokenizer_path=args.tokenizer,
+            n=args.n,
+            embedding_dim=args.embedding_dim,
+            heads=args.heads,
+            d_ff=args.d_ff,
+            dropout_rate=args.dropout_rate,
+            eps=args.eps,
+            activation=args.activation,
+            learning_rate=args.learning_rate,
+            checkpoint=args.checkpoint,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            mini_batch=args.mini_batch,
+            shuffle=args.shuffle_data
+        )
     
 
     

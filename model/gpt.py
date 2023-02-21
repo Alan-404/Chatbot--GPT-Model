@@ -12,11 +12,11 @@ from typing import Union, Callable
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 class GPTModel(nn.Module):
-    def __init__(self, token_size: int,  n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float,activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]):
+    def __init__(self, token_size: int,  n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float,activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]) -> None:
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=token_size, embedding_dim=embedding_dim)
         self.decoder = Decoder(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
-    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
         x = self.embedding_layer(x)
         output = self.decoder(x, mask, training)
         return output
@@ -157,8 +157,8 @@ class GPT:
             for index, batch in enumerate(dataloader, 0):
                 self.pretrain_step(data=batch[0].to(device))
 
-                if index != 0 and index%(mini_batch) == 0:
-                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
+                if index%mini_batch == 0:
+                    print(f"Epoch: {self.epoch} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0
@@ -167,9 +167,12 @@ class GPT:
         if self.checkpoint is not None:
             self.__save_model(self.checkpoint)
 
-        
+    def freeze_all(self):
+        pass
 
     def fit(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, shuffle_data: bool = True, mini_batch: int = 1):
+        
+        
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         
@@ -181,9 +184,9 @@ class GPT:
 
             for index, data in enumerate(dataloader, 0):
                 self.fine_tune_step(inputs=data[0].to(device), labels=data[1].to(device))
-                if index != 0 and index%(mini_batch-1) == 0:
+                if index%mini_batch == 0:
                     # Statiscal
-                    print(f"Epoch: {self.epoch} Batch: {index} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
+                    print(f"Epoch: {self.epoch} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Metric: {(self.bleu_score/mini_batch):.4f}")
 
                     # Set default
                     self.entropy_loss = 0.0

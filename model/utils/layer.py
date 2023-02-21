@@ -9,7 +9,7 @@ from model.utils.res import ResidualConnection
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 class DecoderLayer(nn.Module):
-    def __init__(self, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float, activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]):
+    def __init__(self, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float, activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]) -> None:
         super().__init__()
         self.masked_multi_head_attention = MultiHeadAttention(heads=heads, embedding_dim=embedding_dim)
         self.ffn = PositionWiseFeedForward(d_ff=d_ff, embedding_dim=embedding_dim, activation=activation)
@@ -22,7 +22,7 @@ class DecoderLayer(nn.Module):
 
         self = self.to(device)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
         # sublayer 1
         q = k = v = x
         attention_output = self.masked_multi_head_attention(q, k, v, mask)

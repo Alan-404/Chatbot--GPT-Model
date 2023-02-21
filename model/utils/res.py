@@ -5,12 +5,12 @@ device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 
 class ResidualConnection(nn.Module):
-    def __init__(self, dropout_rate: float):
+    def __init__(self, dropout_rate: float) -> None:
         super().__init__()
         self.dropout_rate = dropout_rate
         self = self.to(device)
     
-    def forward(self, tensor: torch.Tensor, pre_tensor: torch.Tensor, training: bool):
+    def forward(self, tensor: torch.Tensor, pre_tensor: torch.Tensor, training: bool) -> torch.Tensor:
         tensor = F.dropout(input=tensor, p=self.dropout_rate, training=training)
 
         tensor = tensor + pre_tensor
