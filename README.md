@@ -4,13 +4,15 @@ Design a chatbot system using GPT model.
 ## I. Architecture
 <figure align="center">
     <img src="./assets/gpt_model.png">
-    <figcaption>GPT Architecture</figcaption>
 </figure>
 
 GPT Model uses multiples `Decoder Blocks` of `Transformer Architecuture`
-This Architecture has 2 sub layers of each Decoder Layer
-- Masked Multi-Head Attention to make token can see next token in sequence.
-- Position Wise Feed-Forward Networks
+Components inside Decoder Layer
+- `Embedding Layer`
+- `Positional Encoding`
+- `Masked Multi-Head Attention` to make token can see next token in sequence.
+- `Position Wise Feed-Forward Networks`
+- `Residual Connection`
 
 ## II. Setup Environment
 1. Make Sure you have installed Python
@@ -26,10 +28,12 @@ This Architecture has 2 sub layers of each Decoder Layer
 - `dropout_rate`: Rate for Dropout Layer.
 - `eps`: A value added to the denominator for numerical stability.
 - `activation`: Activatin function in Position Wise Feed Forward Networks.
-- `learning_rate`: Learning Rate of Optimizer ADam.
+- `learning_rate`: Learning Rate of Optimizer Adam.
 - `checkpoint`: Folder path of trained model.
 
-## IV. Two Stages Training
+## IV. Dataset Setup
+
+## V. Two Stages Training
 In GPT Model has 2 stages of training:
 - `Pretrain Stage`: Tranin model with large corpus to make model can see the next word if have a previous context (previous words).
 - `Fine-tune Stage`: Train model for Specific Task with pretrained model.
