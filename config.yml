@@ -1,0 +1,17 @@
+version: 1.0
+name: GPT Model
+model_config:
+  n: 12
+  embedding_dim: 768
+  heads: 12
+  d_ff: 2048
+  dropout_rate: 0.1
+  eps: 1e-7
+  learning_rate: 0.0006
+  activation: relu
+  optimizer: adam
+util:
+  length_seq: 33
+early_stopping:
+  pretrain: 0.2
+  fine_tune: 0.2

@@ -28,6 +28,7 @@ class BLEU:
         for n in range(self.n_grams):
             precision_score = self.precision_grams(output=output, label=label, grams=n+1)
             gaps = gaps*np.power(precision_score, self.uniform_weights[n])
+
         return gaps
 
     def brevity_penalty(self, output: torch.Tensor, label: torch.Tensor):
@@ -43,7 +44,9 @@ class BLEU:
         for index in range(batch_size):
             gaps = self.geometric_average_precision_scores(output=outputs[index], label=labels[index])
             penalty = self.brevity_penalty(output=outputs[index], label=labels[index])
-
+            
             batch_score = gaps*penalty
             total_score += batch_score
+        # print(total_score)
+
         return total_score/batch_size
