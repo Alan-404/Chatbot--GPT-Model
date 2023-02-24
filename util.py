@@ -19,7 +19,7 @@ def set_parameters(args: argparse.Namespace, config: dict, parameters: list) -> 
                 args.__dict__[param] = optimizer_dict[config[param]]
             else:
                 args.__dict__[param] = config[param]
-        elif param == 'activation' | 'optimizer':
+        elif param == 'activation':
             args.__dict__[param] = activation_dict[args.__dict__[param].lower()]
         elif param == 'optimizer':
             args.__dict__[param] = optimizer_dict[args.__dict__[param].lower()]
