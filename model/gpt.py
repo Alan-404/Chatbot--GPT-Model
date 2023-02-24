@@ -15,7 +15,14 @@ import os
 device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
 
 class GPTModel(nn.Module):
-    def __init__(self, token_size: int,  n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float,activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]) -> None:
+    def __init__(self, token_size: int,  
+                n: int, 
+                embedding_dim: int, 
+                heads: int, 
+                d_ff: int, 
+                dropout_rate: float, 
+                eps: float,
+                activation: Union[str, Callable[[torch.Tensor], torch.Tensor]]) -> None:
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=token_size, embedding_dim=embedding_dim)
         self.decoder = Decoder(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
@@ -174,7 +181,8 @@ class GPTPretrain:
 class GPT:
     def __init__(self,
                 pretrained_model: str,
-                token_size: int, 
+                token_size: int,
+                early_stopping: float, 
                 n: int = 12, 
                 embedding_dim: int = 768, 
                 heads: int = 12, 
@@ -182,6 +190,7 @@ class GPT:
                 dropout_rate: float = 0.1, 
                 eps: float = 1e-7, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
+                optimizer: optim.Optimizer = optim.Adam,
                 learning_rate: float = 0.0006,
                 checkpoint: str = None) -> None:
         self.pretrained_model = GPTModel(token_size=token_size,
@@ -196,13 +205,15 @@ class GPT:
         self.pretrained_path = pretrained_model
 
         self.fine_tune = GPTFineTune(token_size=token_size)
-        self.optimizer = optim.Adam(params=self.fine_tune.parameters(), lr=learning_rate)
+        self.optimizer = optimizer(params= self.fine_tune.parameters(), lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
         self.epoch = 0
 
         self.checkpoint = checkpoint
 
         self.entropy_loss = 0.0
+
+        self.early_stopping = early_stopping
 
     def build_dataset(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int, shuffle: bool):
         dataset = TensorDataset(inputs, labels)
@@ -277,12 +288,12 @@ class GPT:
             params.requires_grad = False
         print("Loaded Pretrained Model")
 
-    
 
     def fit(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, mini_batch: int = 1, shuffle_data: bool = True):
         self.load_pretrained_model()
-
-        self.load_model(self.checkpoint)
+        self.pretrained_model.to(device)
+        if self.checkpoint is not None:
+            self.load_model(self.checkpoint)
         
         dataloader = self.build_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
 
