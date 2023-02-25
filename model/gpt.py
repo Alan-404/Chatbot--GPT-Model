@@ -5,10 +5,13 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 
 from model.components.decoder import Decoder
+from model.components.classifier import Classifier
 from model.utils.mask import generate_mask
 from model.metric import BLEU
 from model.loss import Perplexity
 from typing import Union, Callable
+
+from torchsummary import summary
 
 import os
 
@@ -26,22 +29,14 @@ class GPTModel(nn.Module):
         super().__init__()
         self.embedding_layer = nn.Embedding(num_embeddings=token_size, embedding_dim=embedding_dim)
         self.decoder = Decoder(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
+        self.to(device)
+
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
         x = self.embedding_layer(x)
         output = self.decoder(x, mask, training)
         return output
 
-class GPTFineTune(nn.Module):
-    def __init__(self, token_size: int) -> None:
-        super().__init__()
-        self.linear = nn.Linear(in_features=token_size, out_features=token_size)
 
-        self = self.to(device)
-
-    def forward(self, x: torch.Tensor):
-        x = self.linear(x)
-
-        return x
 
 class GPTPretrain:
     def __init__(self,
@@ -51,13 +46,13 @@ class GPTPretrain:
                 heads: int = 12, 
                 d_ff: int = 2048, 
                 dropout_rate: float = 0.1, 
-                eps: float = 1e-7, 
+                eps: float = 0.1, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
                 learning_rate: float = 0.0006,
                 optimizer: optim.Optimizer = optim.Adam,
                 checkpoint: str = None):
         self.model = GPTModel(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation)
-        self.model = self.model.to(device)
+
         self.embedding_dim = embedding_dim
         self.checkpoint = checkpoint
         self.optimizer = optimizer(params = self.model.parameters(), lr=learning_rate)
@@ -176,7 +171,37 @@ class GPTPretrain:
 
         if self.checkpoint is not None:
             self.__save_model(self.checkpoint)
+
+class GPTFineTune(nn.Module):
+    def __init__(self, 
+                token_size: int,
+                n: int = 12, 
+                embedding_dim: int = 768, 
+                heads: int = 12, 
+                d_ff: int = 2048, 
+                dropout_rate: float = 0.1, 
+                eps: float = 0.1, 
+                activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu) -> None:
+        super().__init__()
         
+        self.pretrained_model = GPTModel(
+            token_size=token_size,
+            n=n,
+            embedding_dim=embedding_dim,
+            heads=heads,
+            d_ff=d_ff,
+            dropout_rate=dropout_rate,
+            eps=eps,
+            activation=activation
+        )
+
+        # self.classifier = Classifier(token_size=token_size, embedding_dim=embedding_dim)
+
+        self.to(device)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
+        x = self.pretrained_model(x, mask, training)
+        return x     
 
 class GPT:
     def __init__(self,
@@ -188,28 +213,28 @@ class GPT:
                 heads: int = 12, 
                 d_ff: int = 2048, 
                 dropout_rate: float = 0.1, 
-                eps: float = 1e-7, 
+                eps: float = 0.1, 
                 activation: Union[str, Callable[[torch.Tensor], torch.Tensor]] = F.relu,
                 optimizer: optim.Optimizer = optim.Adam,
                 learning_rate: float = 0.0006,
                 checkpoint: str = None) -> None:
-        self.pretrained_model = GPTModel(token_size=token_size,
-                                            n=n,
-                                            embedding_dim=embedding_dim,
-                                            heads=heads,
-                                            d_ff=d_ff,
-                                            dropout_rate=dropout_rate,
-                                            eps=eps,
-                                            activation=activation)
-
+        self.model = GPTFineTune(
+            token_size=token_size,
+            n=n,
+            embedding_dim=embedding_dim,
+            heads=heads,
+            d_ff=d_ff,
+            dropout_rate=dropout_rate,
+            eps=eps,
+            activation=activation
+        )
         self.pretrained_path = pretrained_model
-
-        self.fine_tune = GPTFineTune(token_size=token_size)
-        self.optimizer = optimizer(params= self.fine_tune.parameters(), lr=learning_rate)
+        self.optimizer = optimizer(params= self.model.parameters(), lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
         self.epoch = 0
 
         self.checkpoint = checkpoint
+        print(self.checkpoint)
 
         self.entropy_loss = 0.0
 
@@ -230,17 +255,13 @@ class GPT:
         loss = loss/batch_size
 
         return loss
-        
-    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
-        x = self.pretrained_model(x, mask, training)
-        x = self.fine_tune(x)
-        return x
+
 
     def train_step(self, inputs: torch.Tensor, labels: torch.Tensor):
         self.optimizer.zero_grad()
         
         _, look_ahead_mask = generate_mask(inputs)
-        outputs = self.forward(inputs, look_ahead_mask, True)
+        outputs = self.model(inputs, look_ahead_mask, True)
         loss = self.loss_function(outputs, labels)
 
         loss.backward()
@@ -265,14 +286,12 @@ class GPT:
             self.checkpoint = path
 
     def __save_model(self, path: str) -> None:
-        if os.path.exists(path):
-            torch.save({
-                'model_state_dict': self.fine_tune.state_dict(),
-                'optimizer_state_dict': self.optimizer.state_dict(),
-                'epoch': self.epoch
-            }, path)
-        else:
-            return
+        torch.save({
+            'model_state_dict': self.fine_tune.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
+            'epoch': self.epoch
+        }, path)
+        
 
     def save_model(self, path: str = None):
         if path is None and self.checkpoint is not None:
@@ -283,15 +302,18 @@ class GPT:
 
     def load_pretrained_model(self) -> None:
         checkpoint = torch.load(self.pretrained_path)
-        self.pretrained_model.load_state_dict(checkpoint['model_state_dict'])
-        for params in self.pretrained_model.parameters():
+        self.model.pretrained_model.load_state_dict(checkpoint['model_state_dict'])
+        summary(self.model.pretrained_model)
+        for params in self.model.pretrained_model.parameters():
             params.requires_grad = False
+        self.model.pretrained_model.decoder.linear.requires_grad_(True)
+        summary(self.model.pretrained_model)
         print("Loaded Pretrained Model")
 
 
     def fit(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int = 1, epochs: int = 1, mini_batch: int = 1, shuffle_data: bool = True):
         self.load_pretrained_model()
-        self.pretrained_model.to(device)
+
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         
@@ -304,7 +326,7 @@ class GPT:
 
                 self.train_step(inputs=inputs, labels=labels)
 
-                if index%mini_batch == 0:
+                if index%mini_batch == mini_batch-1:
                     print(f"Epoch: {self.epoch+1} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f}")
                     self.entropy_loss = 0.0
             self.epoch +=1 

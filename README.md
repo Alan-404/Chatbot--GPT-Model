@@ -10,7 +10,7 @@ GPT Model uses multiples `Decoder Blocks` of `Transformer Architecuture`
 Components inside Decoder Layer
 - `Embedding Layer`
 - `Positional Encoding`
-- `Masked Multi-Head Attention` to make token can see next token in sequence.
+- `Masked Multi-Head Attention`
 - `Position Wise Feed-Forward Networks`
 - `Residual Connection`
 
@@ -29,7 +29,7 @@ Components inside Decoder Layer
 - `dropout_rate`: Rate for Dropout Layer.
 - `eps`: A value added to the denominator for numerical stability.
 - `activation`: Activatin function in Position Wise Feed Forward Networks.
-- `learning_rate`: Learning Rate of Optimizer Adam.
+- `learning_rate`: Learning Rate of Optimizer.
 - `checkpoint`: Folder path of trained model.
 
 ## IV. Dataset Setup
@@ -40,6 +40,7 @@ In GPT Model has 2 stages of training:
 - `Fine-tune Stage`: Train model for Specific Task with pretrained model.
 1. Pre-training Stage
 - For pretrain model: `python pretrain.py --data {path_clean_data} --tokenizer {path_tokenizer} --epochs {epochs} --batch_size {batch_size} --mini_batch {mini_batch} --checkpoint {path_checkpoint_folder}`
-- Example: `python pretrain.py --data ./clean/pretrain_data.pkl --tokenizer ./pretrain/pretrain.pkl --epochs 5 --batch_size 64 --mini_batch 32 --checkpoint ./saved_models/pretrain.pt`
+- Example: `python pretrain.py --data ./clean/pretrain_data.pkl --tokenizer ./pretrain/pretrain.pkl --epochs 5 --batch_size 64 --mini_batch 32 --checkpoint ./saved_models/pretrained.pt`
 
 2. Fine-tune Stage
+- For Fine-Tune model: `python train.py --data {folder_clean_data} --tokenizer {path_tokenizer} --epochs {epochs} --batch_size {batch_size} --mini_batch {mini_batch} --pretrained_model {checkpoint_pretrained_path} --checkpoint {checkpoint_path}`

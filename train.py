@@ -18,7 +18,7 @@ parser.add_argument("--dropout_rate", type=float)
 parser.add_argument("--eps", type=float)
 parser.add_argument("--activation", type=str)
 parser.add_argument("--learning_rate", type=float)
-parser.add_argument("--batch_size", type=int, default=1)
+parser.add_argument("--batch_size", type=int, default=10)
 parser.add_argument("--mini_batch", type=int, default=10)
 parser.add_argument("--shuffle_data", type=bool, default=True)
 parser.add_argument("--epochs", type=int, default=1)
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         config = load_model_config(path='./config.yml')
         
         args = set_parameters(args, config['model_config'], parameters=parameters)
-
+        print(args.checkpoint)
         if args.early_stopping is None:
             args.__dict__['early_stopping'] = config['early_stopping']['fine_tune']
         program(
