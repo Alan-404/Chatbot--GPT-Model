@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from model.gpt import GPTPretrain
 from argparse import ArgumentParser
 from typing import Union, Callable
+import torch.optim as optim
 from preprocessing.text import TextProcessor
 from util import load_model_config, set_parameters
 parser = ArgumentParser()
@@ -32,7 +33,7 @@ args = parser.parse_args()
 parameters = ['n', 'embedding_dim', 'heads', 'd_ff', 'activation', 'eps', 'dropout_rate', 'learning_rate', 'optimizer']
 
 
-def program(data_path: str, tokenizer_path: str, n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float, activation: Union[str, Callable[[torch.Tensor], torch.Tensor]], learning_rate: float, checkpoint: str, epochs: int, batch_size: int, mini_batch: int, shuffle: bool, stop_loss: float):
+def program(data_path: str, tokenizer_path: str, n: int, embedding_dim: int, heads: int, d_ff: int, dropout_rate: float, eps: float, activation: Union[str, Callable[[torch.Tensor], torch.Tensor]], optimizer: optim.Optimizer , learning_rate: float, checkpoint: str, epochs: int, batch_size: int, mini_batch: int, shuffle: bool, stop_loss: float):
     text_processor = TextProcessor(tokenizer_path=tokenizer_path)
 
     dataset = text_processor.load_data(data_path)
@@ -43,9 +44,9 @@ def program(data_path: str, tokenizer_path: str, n: int, embedding_dim: int, hea
 
     token_size = text_processor.tokenizer.num_tokens + 1
     
-    gpt = GPTPretrain(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation, learning_rate=learning_rate, checkpoint=checkpoint)
+    gpt = GPTPretrain(token_size=token_size, n=n, embedding_dim=embedding_dim, heads=heads, d_ff=d_ff, dropout_rate=dropout_rate, eps=eps, activation=activation, optimizer=optimizer, learning_rate=learning_rate, checkpoint=checkpoint)
     
-    gpt.fit(data=dataset, stop_loss=stop_loss, epochs=epochs, batch_size=batch_size, shuffle_data=shuffle, mini_batch=mini_batch)
+    gpt.fit(data=dataset, epochs=epochs, batch_size=batch_size, shuffle=shuffle, mini_batch=mini_batch)
 
 
 if __name__ == "__main__":
@@ -75,7 +76,8 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             mini_batch=args.mini_batch,
             shuffle=args.shuffle_data,
-            stop_loss=args.early_stopping
+            stop_loss=args.early_stopping,
+            optimizer=args.optimizer
         )
     
 

@@ -9,6 +9,8 @@ parser.add_argument('--model', type=str)
 parser.add_argument('--tokenizer', type=str)
 parser.add_argument('--length', type=int, default=32)
 
+parser.add_argument('--input', type=str)
+
 args = parser.parse_args()
 
 
@@ -28,3 +30,14 @@ def program(model: str, tokenizer: str, input: str, max_len: int):
     result = gpt.predict(data=digits, limit_tokens=max_len, end_token=token_dictionary['end_token'])
 
     return result
+
+if __name__ == '__main__':
+    if args.tokenizer is None or args.model is None or args.input is None:
+        print("Missing data")
+    else:
+        print(program(
+            model=args.model,
+            tokenizer=args.tokenizer,
+            max_len=args.length,
+            input=args.input
+        ))

@@ -44,3 +44,4 @@ In GPT Model has 2 stages of training:
 
 2. Fine-tune Stage
 - For Fine-Tune model: `python train.py --data {folder_clean_data} --tokenizer {path_tokenizer} --epochs {epochs} --batch_size {batch_size} --mini_batch {mini_batch} --pretrained_model {checkpoint_pretrained_path} --checkpoint {checkpoint_path}`
+- Example: `python train.py --data ./clean --tokenizer ./tokenizer/tokenizer.pkl --epochs 10 --batch_size 64 --mini_batch 32 --pretrained_model ./saved_models.pretrained.pt --checkpoint ./saved_models/gpt.pt`

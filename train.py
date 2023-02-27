@@ -48,7 +48,6 @@ def program(data_folder: str,
             shuffle: bool, 
             mini_batch: int, 
             optimizer: optim.Optimizer, 
-            early_stopping: float, 
             pretrained_model_path: str, 
             checkpoint: str):
     text_processor = TextProcessor(tokenizer_path=tokenizer_path)
@@ -61,7 +60,6 @@ def program(data_folder: str,
     token_size = text_processor.tokenizer.num_tokens + 1
     
     model = GPT(
-        pretrained_model=pretrained_model_path,
         token_size=token_size,
         n=n,
         embedding_dim=embedding_dim,
@@ -72,14 +70,13 @@ def program(data_folder: str,
         activation=activation,
         learning_rate=learning_rate, 
         checkpoint=checkpoint,
-        optimizer=optimizer,
-        early_stopping=early_stopping
+        optimizer=optimizer
     )
 
     inputs = torch.tensor(inputs)
     labels = torch.tensor(labels)
 
-    model.fit(inputs=inputs, labels=labels, batch_size=batch_size, epochs=epochs, mini_batch=mini_batch, shuffle_data=shuffle)
+    model.fit(inputs=inputs, labels=labels, pretrained_path=pretrained_model_path, batch_size=batch_size, epochs=epochs, mini_batch=mini_batch, shuffle_data=shuffle)
 
 if __name__ == "__main__":
     if args.data is None or args.tokenizer is None or args.pretrained_model is None or args.checkpoint is None:
@@ -107,7 +104,6 @@ if __name__ == "__main__":
             batch_size=args.batch_size,
             mini_batch=args.mini_batch,
             shuffle=args.shuffle_data,
-            early_stopping=args.early_stopping,
             optimizer=args.optimizer,
             pretrained_model_path=args.pretrained_model
         )
