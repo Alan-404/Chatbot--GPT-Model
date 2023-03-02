@@ -1,5 +1,4 @@
 import torch
-import torch.nn.functional as F
 from model.gpt import GPTPretrain
 from argparse import ArgumentParser
 from typing import Union, Callable

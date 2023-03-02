@@ -65,7 +65,8 @@ class GPTPretrain:
 
         self.epoch = 0
 
-
+    def sumary(self):
+        summary(self.model)
 
     def build_pretrain_dataset(self, data: torch.Tensor, batch_size: int, shuffle: bool = True):
         dataset = TensorDataset(data)
@@ -76,8 +77,7 @@ class GPTPretrain:
         torch.save({
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-            'epoch': self.epoch,
-            'loss': self.entropy_loss
+            'epoch': self.epoch
         }, checkpoint)
 
         print(f"Model Saved at {checkpoint}")
@@ -88,8 +88,6 @@ class GPTPretrain:
             self.model.load_state_dict(checkpoint_data['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint_data['optimizer_state_dict'])
             self.epoch = checkpoint_data['epoch']
-            self.entropy_loss = checkpoint_data['loss']
-            self.model.eval()
 
     def save_model(self, path: str = None):
         if path is not None:
@@ -144,16 +142,15 @@ class GPTPretrain:
     def fit(self, data: torch.Tensor,batch_size: int = 1, epochs: int = 1, shuffle: bool = True, mini_batch: int = 1):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
-        
+        self.model.train()
         dataloader = self.build_pretrain_dataset(data=data, batch_size=batch_size, shuffle=shuffle)
-
         epoch_loss = 0.0
-
+        batches = len(dataloader)
         for _ in range(epochs):
             for index, batch in enumerate(dataloader, 0):
                 self.pretrain_step(data=batch[0].to(device))
                 epoch_loss += self.entropy_loss
-                if index%mini_batch == mini_batch-1:
+                if index%mini_batch == mini_batch-1 or index == batches-1:
                     print(f"Epoch: {self.epoch + 1} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f} Perplexity Loss: {(self.perplexity/mini_batch):.4f}")
 
                     # Set default
@@ -272,8 +269,7 @@ class GPT:
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.epoch = checkpoint['epoch']
-        else:
-            return
+
 
     def load_model(self, path: str = None):
         if path is None and self.checkpoint is not None:
@@ -313,7 +309,7 @@ class GPT:
 
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
-        
+        self.model.train()
         dataloader = self.build_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
 
         for _ in range(epochs):
@@ -331,7 +327,7 @@ class GPT:
         if self.checkpoint is not None:
             self.__save_model(self.checkpoint)
 
-    def __predict_token(self, input: torch.Tensor):
+    def __predict_token(self, input: torch.Tensor) -> torch.Tensor:
         _, look_ahead_mask = generate_mask(input)
         
         outputs = self.model(input, look_ahead_mask, False)
@@ -340,14 +336,18 @@ class GPT:
         _, token_id = torch.max(predict, dim=-1)
 
         return token_id
+    def sumary(self):
+        if self.checkpoint is not None:
+            self.load_model(self.checkpoint)
+        summary(self.model)
 
     def predict(self, data: torch.Tensor, limit_tokens: int, end_token: int):
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         else:
-            print("Model is not Trained")
+            print("Model is Trained")
             return None
-        
+        self.model.eval()
         data = data.to(device)
 
         for _ in range(limit_tokens):
