@@ -11,3 +11,4 @@ __pycache__
 /handle_pretrain.py
 /test.py
 /handle_finetune.py
+/temp

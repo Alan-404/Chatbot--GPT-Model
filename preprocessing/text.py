@@ -22,13 +22,12 @@ class SignHandler:
     def __init__(self) -> None:
         pass
     def __sign(self, sequence: str) -> str:
-        sequence = re.sub(r"\.\.\.", f"{token_dictionary['triple_dot_token']}", sequence)
+        """ sequence = re.sub(r"\.\.\.", f"...", sequence) """
         sequence = re.sub(r"\.", f"{token_dictionary['sep_token']}", sequence)
-        sequence = re.sub(r'\?', f"{token_dictionary['question_token']}", sequence)
-        sequence = re.sub(r"\,", f"{token_dictionary['comma_token']}", sequence)
+        """ sequence = re.sub(r'\?', f"?", sequence)
+        sequence = re.sub(r"\,", f" , ", sequence) """
         sequence = re.sub("\n", f"{token_dictionary['line_token']}", sequence)
-        """ if len(sequence.split(' ')) != 0 and sequence.split(' ')[-1] not in token_dictionary.values():
-            sequence += f" {token_dictionary['sep_token']}" """
+
         return sequence
 
     def __sign_to_text(self, sequence: str) -> str:
@@ -60,14 +59,15 @@ class Cleanner:
         self.filters = filters
     def __clean(self, sequence: str) -> str:
         sequence = sequence.strip()
+        sequence = sequence.lower()
         sequence = re.sub('\s\s+', ' ', sequence)
-        sequence = re.sub(rf'{self.filters}', '', sequence)
+        # sequence = re.sub(rf'{self.filters}', '', sequence)
         return sequence
 
     def clean(self, sequences: list) -> list:
         for index in range(len(sequences)):
             sequences[index] = self.__clean(sequence=sequences[index])
-
+        print(sequences[0:10])
         return sequences
 
 
@@ -175,6 +175,7 @@ class Tokenizer:
             self = pickle.load(file)
 
     def add_token(self, token: str) -> None:
+        # token = token.lower()
         if token not in self.token_index:
             self.num_tokens += 1
             self.token_index[token] = self.num_tokens
@@ -258,7 +259,7 @@ class TextProcessor:
         
         return np.array(result)
 
-    def process(self, sequences: list, max_len: int, padding: str = 'post', truncating: str = "post", start_token: bool = False, end_token: bool = False) -> np.ndarray:
+    def process(self, sequences: list, max_len: int = None, padding: str = 'post', truncating: str = "post", start_token: bool = False, end_token: bool = False) -> np.ndarray:
         sequences = self.cleanner.clean(sequences=sequences)
         sequences = self.lemmaization.lemma(sequences=sequences)
         sequences = self.replacer.replace(sequences= sequences)
@@ -266,7 +267,8 @@ class TextProcessor:
         if self.remove_stop_words:
             sequences = self.remover.remove(sequences=sequences)
         sequences = self.tokenizer.tokenize(sequences=sequences)
-        sequences = self.pad_sequences(sequences=sequences, maxlen=max_len, padding=padding, truncating=truncating)
+        if max_len is not None:
+            sequences = self.pad_sequences(sequences=sequences, maxlen=max_len, padding=padding, truncating=truncating)
         return sequences
 
     def __load_data(self, path: str) -> np.ndarray:

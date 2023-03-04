@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 data_path=args.data_path,
                 tokenizer_path=args.tokenizer,
                 length_seq=args.length_seq,
-                saved_path=args.args.saved_pretrain_path
+                saved_path=args.saved_pretrain_path
             )
     elif args.type == "finetune":
         if args.clean_folder is None:

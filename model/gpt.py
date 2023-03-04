@@ -65,6 +65,9 @@ class GPTPretrain:
 
         self.epoch = 0
 
+        if self.checkpoint is not None:
+            self.load_model(checkpoint)
+
     def sumary(self):
         summary(self.model)
 
@@ -143,6 +146,7 @@ class GPTPretrain:
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         self.model.train()
+        self.sumary()
         dataloader = self.build_pretrain_dataset(data=data, batch_size=batch_size, shuffle=shuffle)
         epoch_loss = 0.0
         batches = len(dataloader)
@@ -193,6 +197,7 @@ class GPTFineTune(nn.Module):
         
         self.classifier = Classifier()
 
+
         self.to(device)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool):
@@ -224,7 +229,7 @@ class GPT:
             activation=activation
         )
         
-        self.optimizer = optimizer(params= self.model.parameters(), lr=learning_rate)
+        self.optimizer = optim.Adam(params=self.model.parameters(), lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
         self.epoch = 0
 
@@ -232,7 +237,10 @@ class GPT:
 
         self.entropy_loss = 0.0
 
+        self.training = False
 
+        if self.checkpoint is not None:
+            self.load_model(checkpoint)
 
     def build_dataset(self, inputs: torch.Tensor, labels: torch.Tensor, batch_size: int, shuffle: bool):
         dataset = TensorDataset(inputs, labels)
@@ -270,6 +278,11 @@ class GPT:
             self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
             self.epoch = checkpoint['epoch']
 
+            for params in self.model.pretrained_model.parameters():
+                params.requires_grad = False
+            self.model.pretrained_model.decoder.linear.requires_grad_(True)
+            self.training = True
+
 
     def load_model(self, path: str = None):
         if path is None and self.checkpoint is not None:
@@ -284,6 +297,7 @@ class GPT:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'epoch': self.epoch
         }, path)
+        print(f"Model is saved at {path}")
         
 
     def save_model(self, path: str = None):
@@ -303,23 +317,25 @@ class GPT:
         print("Loaded Pretrained Model")
 
 
-    def fit(self, inputs: torch.Tensor, labels: torch.Tensor, pretrained_path: str, batch_size: int = 1, epochs: int = 1, mini_batch: int = 1, shuffle_data: bool = True):
-
-        self.load_pretrained_model(pretrained_path)
-
+    def fit(self, inputs: torch.Tensor, labels: torch.Tensor,  pretrained_path: str = None, batch_size: int = 1, epochs: int = 1, mini_batch: int = 1, shuffle_data: bool = True):
+        
         if self.checkpoint is not None:
             self.load_model(self.checkpoint)
+        if self.training == False:
+            self.load_pretrained_model(pretrained_path)
         self.model.train()
+        self.sumary()
         dataloader = self.build_dataset(inputs=inputs, labels=labels, batch_size=batch_size, shuffle=shuffle_data)
-
         for _ in range(epochs):
+            total_batch = len(dataloader)
             for index, data in enumerate(dataloader, 0):
                 inputs = data[0].to(device)
                 labels = data[1].to(device)
 
                 self.train_step(inputs=inputs, labels=labels)
 
-                if index%mini_batch == mini_batch-1:
+
+                if index%mini_batch == mini_batch-1 or index == total_batch-1:
                     print(f"Epoch: {self.epoch+1} Batch: {index+1} Loss: {(self.entropy_loss/mini_batch):.4f}")
                     self.entropy_loss = 0.0
             self.epoch +=1 
@@ -342,17 +358,16 @@ class GPT:
         summary(self.model)
 
     def predict(self, data: torch.Tensor, limit_tokens: int, end_token: int):
-        if self.checkpoint is not None:
+        """ if self.checkpoint is not None:
             self.load_model(self.checkpoint)
         else:
-            print("Model is Trained")
-            return None
+            print("Model is not Trained")
+            return None """
         self.model.eval()
         data = data.to(device)
 
         for _ in range(limit_tokens):
             token = self.__predict_token(input=data)
-
             if token == end_token:
                 break
             

@@ -48,8 +48,8 @@ def program(data_folder: str,
             shuffle: bool, 
             mini_batch: int, 
             optimizer: optim.Optimizer, 
-            pretrained_model_path: str, 
-            checkpoint: str):
+            checkpoint: str,
+            pretrained_model_path: str = None):
     text_processor = TextProcessor(tokenizer_path=tokenizer_path)
 
     inputs = text_processor.load_data(f"{data_folder}/question.pkl")
@@ -79,7 +79,7 @@ def program(data_folder: str,
     model.fit(inputs=inputs, labels=labels, pretrained_path=pretrained_model_path, batch_size=batch_size, epochs=epochs, mini_batch=mini_batch, shuffle_data=shuffle)
 
 if __name__ == "__main__":
-    if args.data is None or args.tokenizer is None or args.pretrained_model is None or args.checkpoint is None:
+    if args.data is None or args.tokenizer is None or args.checkpoint is None:
         print("Missing Information")
     else:
         config = load_model_config(path='./config.yml')
