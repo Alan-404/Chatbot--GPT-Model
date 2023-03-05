@@ -18,7 +18,7 @@ class PositionalEncoding(nn.Module):
 
     def encode_embedding(self) -> torch.Tensor:
         angles = torch.arange(self.embedding_dim)
-        angles[0::2] = angles[1::2]
+        angles[1::2] = angles[0::2]
         angles = 1/(torch.pow(10000, angles/self.embedding_dim))
 
         angles = angles.unsqueeze(0)
