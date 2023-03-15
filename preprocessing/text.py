@@ -175,7 +175,6 @@ class Tokenizer:
             self = pickle.load(file)
 
     def add_token(self, token: str) -> None:
-        # token = token.lower()
         if token not in self.token_index:
             self.num_tokens += 1
             self.token_index[token] = self.num_tokens
@@ -259,11 +258,26 @@ class TextProcessor:
         
         return np.array(result)
 
-    def process(self, sequences: list, max_len: int = None, padding: str = 'post', truncating: str = "post", start_token: bool = False, end_token: bool = False) -> np.ndarray:
-        sequences = self.cleanner.clean(sequences=sequences)
-        sequences = self.lemmaization.lemma(sequences=sequences)
-        sequences = self.replacer.replace(sequences= sequences)
-        sequences = self.sign_handler.sign(sequences=sequences, start_token=start_token, end_token=end_token)
+    def process(self, inputs: list, outputs: list, max_len: int = None, padding: str = 'post', truncating: str = "post", start_token: bool = False, end_token: bool = False) -> np.ndarray:
+        inputs = self.cleanner.clean(sequences=inputs)
+        outputs = self.cleanner.clean(sequences=outputs)
+
+        inputs = self.lemmaization.lemma(sequences=inputs)
+        outputs = self.lemmaization.lemma(sequences=outputs)
+
+        inputs = self.replacer.replace(sequences=inputs)
+        outputs = self.replacer.replace(sequences=outputs)
+
+        inputs = self.sign_handler.sign(sequences=inputs, start_token=start_token, end_token=False)
+        outputs = self.sign_handler.sign(sequences=outputs, start_token=False, end_token=end_token)
+
+        sequences = []
+        for i in range(len(inputs)):
+            if len(outputs) != 0:
+                sequences.append(f"{inputs[i]} __delim__ {outputs[i]}")
+            else:
+                sequences.append(f"{inputs[i]} __delim__")
+
         if self.remove_stop_words:
             sequences = self.remover.remove(sequences=sequences)
         sequences = self.tokenizer.tokenize(sequences=sequences)

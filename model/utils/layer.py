@@ -22,16 +22,16 @@ class DecoderLayer(nn.Module):
 
         self = self.to(device)
 
-    def forward(self, x: torch.Tensor, mask: torch.Tensor, training: bool) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # sublayer 1
         q = k = v = x
         attention_output = self.masked_multi_head_attention(q, k, v, mask)
-        attention_output = self.residual_connection_1(attention_output, x, training)
+        attention_output = self.residual_connection_1(attention_output, x)
         sublayer_1 = self.layer_norm_1(attention_output)
 
         # sublayer 2
         ffn_output = self.ffn(sublayer_1)
-        ffn_output = self.residual_connection_2(ffn_output, sublayer_1, training)
+        ffn_output = self.residual_connection_2(ffn_output, sublayer_1)
         sublayer_2 = self.layer_norm_2(ffn_output)
 
         return sublayer_2

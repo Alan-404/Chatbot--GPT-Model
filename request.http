@@ -1,0 +1,23 @@
+###
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+    "input": "Hello"
+}
+
+###
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+    "input": "What are you today?"
+}
+
+###
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+    "input": "Who has more super bowl wins afc or nfc?"
+}

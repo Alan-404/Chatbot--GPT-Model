@@ -38,10 +38,7 @@ Components inside Decoder Layer
 In GPT Model has 2 stages of training:
 - `Pretrain Stage`: Tranin model with large corpus to make model can see the next word if have a previous context (previous words).
 - `Fine-tune Stage`: Train model for Specific Task with pretrained model.
-1. Pre-training Stage
-- For pretrain model: `python pretrain.py --data {path_clean_data} --tokenizer {path_tokenizer} --epochs {epochs} --batch_size {batch_size} --mini_batch {mini_batch} --checkpoint {path_checkpoint_folder}`
-- Example: `python pretrain.py --data ./clean/pretrain_data.pkl --tokenizer ./pretrain/pretrain.pkl --epochs 5 --batch_size 64 --mini_batch 32 --checkpoint ./saved_models/pretrained.pt`
 
-2. Fine-tune Stage
+Training:
 - For Fine-Tune model: `python train.py --data {folder_clean_data} --tokenizer {path_tokenizer} --epochs {epochs} --batch_size {batch_size} --mini_batch {mini_batch} --pretrained_model {checkpoint_pretrained_path} --checkpoint {checkpoint_path}`
 - Example: `python train.py --data ./clean --tokenizer ./tokenizer/tokenizer.pkl --epochs 10 --batch_size 64 --mini_batch 32 --pretrained_model ./saved_models.pretrained.pt --checkpoint ./saved_models/gpt.pt`

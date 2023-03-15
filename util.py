@@ -8,6 +8,7 @@ def load_model_config(path: str) -> dict:
         data = yaml.load(file, Loader=SafeLoader)
     return data
 
+
 def set_parameters(args: argparse.Namespace, config: dict, parameters: list) -> argparse.Namespace:
     for param in parameters:
         if args.__dict__[param] is None:

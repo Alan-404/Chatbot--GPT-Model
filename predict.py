@@ -20,7 +20,7 @@ def program(model: str, tokenizer: str, input: str, max_len: int):
 
     text_processor.loadd_tokenizer(path=tokenizer)
 
-    digits = text_processor.process(sequences=[input], max_len=None, start_token=True)
+    digits = text_processor.process(inputs=[input], outputs=[], max_len=None, start_token=True)
     digits = np.array(digits)
     digits = torch.tensor(digits)
 
@@ -28,12 +28,12 @@ def program(model: str, tokenizer: str, input: str, max_len: int):
 
     gpt = GPT(token_size=token_size, checkpoint=model)
 
-    result = gpt.predict(data=digits, limit_tokens=max_len, end_token=token_dictionary['end_token'])
+    result = gpt.predict(seq=digits, num_tokens=max_len, end_token=text_processor.tokenizer.token_index['__end__'])
     sequence = ""
 
-    for item in result[0]:
+    for item in result[0][digits.size(1): -1]:
         sequence += text_processor.tokenizer.index_token[item.item()] + " "
-    return re.sub(input, "", sequence)
+    return sequence
 
 
 if __name__ == '__main__':

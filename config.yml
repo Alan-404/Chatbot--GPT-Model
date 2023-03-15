@@ -1,17 +1,18 @@
-version: 1.0
+version: 2.0
 name: GPT Model
 model_config:
-  n: 12
-  embedding_dim: 768
-  heads: 12
+  n: 8
+  embedding_dim: 512
+  heads: 8
   d_ff: 2048
   dropout_rate: 0.1
   eps: 0.1
-  learning_rate: 0.0006
+  learning_rate: 0.0004
   activation: relu
   optimizer: adam
 util:
-  length_seq: 33
-early_stopping:
-  pretrain: 0.2
-  fine_tune: 0.2
+  length_seq: 65
+predict_config:
+  checkpoint: ./saved_models/chatbot.pt
+  tokenizer: ./tokenizer/tokenizer.pkl
+  limit_token: 64

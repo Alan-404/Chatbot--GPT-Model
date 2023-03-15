@@ -18,15 +18,15 @@ parser.add_argument("--dropout_rate", type=float)
 parser.add_argument("--eps", type=float)
 parser.add_argument("--activation", type=str)
 parser.add_argument("--learning_rate", type=float)
-parser.add_argument("--batch_size", type=int, default=10)
-parser.add_argument("--mini_batch", type=int, default=10)
+parser.add_argument("--batch_size", type=int, default=1)
+parser.add_argument("--mini_batch", type=int, default=1)
 parser.add_argument("--shuffle_data", type=bool, default=True)
 parser.add_argument("--epochs", type=int, default=1)
 parser.add_argument("--optimizer", type=str)
 parser.add_argument('--early_stopping', type=float)
 
-parser.add_argument("--pretrained_model", type=str)
 parser.add_argument("--checkpoint", type=str)
+parser.add_argument("--saved_checkpoint", type=str, default=None)
 
 args = parser.parse_args()
 
@@ -49,11 +49,10 @@ def program(data_folder: str,
             mini_batch: int, 
             optimizer: optim.Optimizer, 
             checkpoint: str,
-            pretrained_model_path: str = None):
+            saved_checkpoint: str):
     text_processor = TextProcessor(tokenizer_path=tokenizer_path)
 
-    inputs = text_processor.load_data(f"{data_folder}/question.pkl")
-    labels = text_processor.load_data(f"{data_folder}/answer.pkl")
+    data = text_processor.load_data(f"{data_folder}")
 
     text_processor.loadd_tokenizer(tokenizer_path)
 
@@ -68,26 +67,32 @@ def program(data_folder: str,
         dropout_rate=dropout_rate,
         eps=eps,
         activation=activation,
-        learning_rate=learning_rate, 
         checkpoint=checkpoint,
         optimizer=optimizer
     )
 
-    inputs = torch.tensor(inputs)
-    labels = torch.tensor(labels)
+    data = torch.tensor(data)
 
-    model.fit(inputs=inputs, labels=labels, pretrained_path=pretrained_model_path, batch_size=batch_size, epochs=epochs, mini_batch=mini_batch, shuffle_data=shuffle)
+    model.fit(seq=data, 
+            batch_size=batch_size, 
+            epochs=epochs, 
+            mini_batch=mini_batch,
+            learning_rate=learning_rate, 
+            checkpoint=saved_checkpoint,
+            shuffle=shuffle
+        )
 
 if __name__ == "__main__":
     if args.data is None or args.tokenizer is None or args.checkpoint is None:
         print("Missing Information")
     else:
+        if args.saved_checkpoint is None:
+            args.saved_checkpoint = args.checkpoint
+        
         config = load_model_config(path='./config.yml')
         
         args = set_parameters(args, config['model_config'], parameters=parameters)
-        print(args.checkpoint)
-        if args.early_stopping is None:
-            args.__dict__['early_stopping'] = config['early_stopping']['fine_tune']
+
         program(
             data_folder=args.data,
             tokenizer_path=args.tokenizer,
@@ -105,5 +110,5 @@ if __name__ == "__main__":
             mini_batch=args.mini_batch,
             shuffle=args.shuffle_data,
             optimizer=args.optimizer,
-            pretrained_model_path=args.pretrained_model
+            saved_checkpoint=args.saved_checkpoint
         )
